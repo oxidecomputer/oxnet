@@ -1,10 +1,14 @@
 // Copyright 2024 Oxide Computer Company
 
 #![forbid(unsafe_code)]
+#![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 
 mod ipnet;
 #[cfg(feature = "schemars")]
 mod schema_util;
 
-pub use ipnet::{IpNet, Ipv4Net, Ipv6Net};
+pub use ipnet::{
+    IpNet, IpNetParseError, IpNetPrefixError, Ipv4Net, Ipv6Net, IPV4_NET_PREFIX_MAX,
+    IPV6_NET_PREFIX_MAX,
+};

@@ -5,20 +5,40 @@ use std::{
     num::ParseIntError,
 };
 
+/// A prefix error during the creation of an [IpNet], [Ipv4Net], or [Ipv6Net]
 #[derive(Debug, Clone)]
 pub struct IpNetPrefixError(u8);
 
+impl std::fmt::Display for IpNetPrefixError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "invalid network prefix {}", self.0)
+    }
+}
+impl std::error::Error for IpNetPrefixError {}
+
+/// An error during the parsing of an [IpNet], [Ipv4Net], or [Ipv6Net]
 #[derive(Debug, Clone)]
 pub enum IpNetParseError {
+    /// Failure to parse the address
     InvalidAddr(AddrParseError),
+    /// Bad prefix value
     PrefixValue(IpNetPrefixError),
-    MissingSlash,
+    /// No slash to indicate the prefix
+    NoPrefix,
+    /// Prefix parse error
     InvalidPrefix(ParseIntError),
 }
 
 impl std::fmt::Display for IpNetParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        match self {
+            IpNetParseError::InvalidAddr(e) => e.fmt(f),
+            IpNetParseError::PrefixValue(e) => {
+                write!(f, "invalid prefix value: {}", e)
+            }
+            IpNetParseError::NoPrefix => write!(f, "missing '/' character"),
+            IpNetParseError::InvalidPrefix(e) => e.fmt(f),
+        }
     }
 }
 
@@ -27,17 +47,21 @@ impl std::fmt::Display for IpNetParseError {
 #[cfg_attr(feature = "serde", serde(untagged))]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum IpNet {
+    /// An IPv4 subnet
     V4(Ipv4Net),
+    /// An IPv6 subnet
     V6(Ipv6Net),
 }
 
 impl IpNet {
+    /// Create a new IpNet with the given base address and prefix length.
     pub fn new(addr: IpAddr, prefix: u8) -> Result<Self, IpNetPrefixError> {
         match addr {
             IpAddr::V4(addr) => Ok(Self::V4(Ipv4Net::new(addr, prefix)?)),
             IpAddr::V6(addr) => Ok(Self::V6(Ipv6Net::new(addr, prefix)?)),
         }
     }
+    /// Create an IpNet that contains *exclusively* the given address.
     pub fn host_net(addr: IpAddr) -> Self {
         match addr {
             IpAddr::V4(addr) => Self::V4(Ipv4Net::host_net(addr)),
@@ -45,7 +69,7 @@ impl IpNet {
         }
     }
 
-    /// Returns the base address.
+    /// Return the base address.
     pub fn addr(&self) -> IpAddr {
         match self {
             IpNet::V4(inner) => inner.addr().into(),
@@ -53,7 +77,7 @@ impl IpNet {
         }
     }
 
-    /// Returns the prefix length.
+    /// Return the prefix length.
     pub fn prefix(&self) -> u8 {
         match self {
             IpNet::V4(inner) => inner.prefix(),
@@ -61,6 +85,8 @@ impl IpNet {
         }
     }
 
+    /// Return `true` iff the subnet contains only the base address i.e. the
+    /// size is exactly one address.
     pub fn is_host_net(&self) -> bool {
         match self {
             IpNet::V4(inner) => inner.is_host_net(),
@@ -68,44 +94,10 @@ impl IpNet {
         }
     }
 
-    // Returns the first address in this subnet.
-    // pub fn first_address(&self) -> IpAddr {
-    //     match self {
-    //         IpNet::V4(inner) => IpAddr::from(inner.iter().next().unwrap()),
-    //         IpNet::V6(inner) => IpAddr::from(inner.iter().next().unwrap()),
-    //     }
-    // }
-
-    // Return the last address in this subnet.
-    //
-    // For a subnet of size 1, e.g., a /32, this is the same as the first
-    // address.
-    // NOTE: This is a workaround for the fact that the `ipnetwork` crate's
-    // iterator provides only the `Iterator::next()` method. That means that
-    // finding the last address is linear in the size of the subnet, which is
-    // completely untenable and totally avoidable with some addition. In the
-    // long term, we should either put up a patch to the `ipnetwork` crate or
-    // move the `ipnet` crate, which does provide an efficient iterator
-    // implementation.
-    // pub fn last_address(&self) -> IpAddr {
-    //     match self {
-    //         IpNet::V4(inner) => {
-    //             let base: u32 = inner.network().into();
-    //             let size = inner.size() - 1;
-    //             std::net::IpAddr::V4(std::net::Ipv4Addr::from(base + size))
-    //         }
-    //         IpNet::V6(inner) => {
-    //             let base: u128 = inner.network().into();
-    //             let size = inner.size() - 1;
-    //             std::net::IpAddr::V6(std::net::Ipv6Addr::from(base + size))
-    //         }
-    //     }
-    // }
-
-    // Return true if the provided address is contained in self.
-    //
-    // This returns false if the address and the network are of different IP
-    // families.
+    /// Return `true`` if the provided address is contained in self.
+    ///
+    /// This returns `false` if the address and the network are of different IP
+    /// families.
     pub fn contains(&self, addr: IpAddr) -> bool {
         match (self, addr) {
             (IpNet::V4(net), IpAddr::V4(ip)) => net.contains(ip),
@@ -141,7 +133,7 @@ impl std::str::FromStr for IpNet {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let Some(ii) = s.find('/') else {
-            return Err(IpNetParseError::MissingSlash);
+            return Err(IpNetParseError::NoPrefix);
         };
 
         let addr_str = &s[..ii];
@@ -176,6 +168,7 @@ impl schemars::JsonSchema for IpNet {
     }
 }
 
+/// The highest value for an IPv4 subnet prefix
 pub const IPV4_NET_PREFIX_MAX: u8 = 32;
 
 /// An IPv4 subnet
@@ -186,6 +179,7 @@ pub struct Ipv4Net {
 }
 
 impl Ipv4Net {
+    /// Create a new Ipv4Net with the given base address and prefix length.
     pub fn new(addr: Ipv4Addr, prefix: u8) -> Result<Self, IpNetPrefixError> {
         if prefix > IPV4_NET_PREFIX_MAX {
             Err(IpNetPrefixError(prefix))
@@ -193,25 +187,34 @@ impl Ipv4Net {
             Ok(Self { addr, prefix })
         }
     }
+
+    /// Create an Ipv4Net that contains *exclusively* the given address.
     pub fn host_net(addr: Ipv4Addr) -> Self {
         Self {
             addr,
             prefix: IPV4_NET_PREFIX_MAX,
         }
     }
-    pub fn is_host_net(&self) -> bool {
-        self.prefix == IPV4_NET_PREFIX_MAX
-    }
+
+    /// Return the base address.
     pub fn addr(&self) -> Ipv4Addr {
         self.addr
     }
 
+    /// Return the prefix length.
     pub fn prefix(&self) -> u8 {
         self.prefix
     }
 
+    /// Return true iff the subnet contains only the base address i.e. the
+    /// size is exactly one address.
+    pub fn is_host_net(&self) -> bool {
+        self.prefix == IPV4_NET_PREFIX_MAX
+    }
+
+    /// Return the number of addresses contained within this subnet.
     pub fn size(&self) -> u32 {
-        1u32 << self.prefix
+        1u32 << (IPV4_NET_PREFIX_MAX - self.prefix)
     }
 
     // TODO should this be necessary or should we enforce during new?
@@ -226,21 +229,29 @@ impl Ipv4Net {
         ((1u32 << self.prefix) - 1) << (IPV4_NET_PREFIX_MAX - self.prefix)
     }
 
-    /// Return `true` if the IP address is within the network.
-    pub fn contains(&self, other: Ipv4Addr) -> bool {
-        let prefix: u32 = self.addr.into();
-        let other_addr: u32 = other.into();
-
-        (other_addr & self.mask_impl()) == prefix
+    /// Return the netmask address derived from prefix length.
+    pub fn mask(&self) -> Ipv4Addr {
+        self.mask_impl().into()
     }
 
+    /// Return `true` iff the IP address is within the network.
+    pub fn contains(&self, other: Ipv4Addr) -> bool {
+        let addr: u32 = self.addr.into();
+        let other: u32 = other.into();
+        let mask = self.mask_impl();
+
+        (addr & mask) == (other & mask)
+    }
+
+    /// The broadcast address for this subnet which is also the last address.
     pub fn broadcast(&self) -> Ipv4Addr {
         let addr: u32 = self.addr.into();
         let last = addr | ((1u32 << (IPV4_NET_PREFIX_MAX - self.prefix)) - 1);
         Ipv4Addr::from(last)
     }
 
-    pub fn iter(&self) -> Ipv4NetIter {
+    /// Return an interator over the addresses of this subnet.
+    pub fn iter(&self) -> impl Iterator<Item = Ipv4Addr> {
         let addr: u32 = self.addr.into();
         let last = addr | ((1u32 << (IPV4_NET_PREFIX_MAX - self.prefix)) - 1);
         Ipv4NetIter {
@@ -249,9 +260,10 @@ impl Ipv4Net {
         }
     }
 
+    /// Return the nth address within this subnet or none if `n` is larger than
+    /// the size of the subnet.
     pub fn nth(&self, n: u32) -> Option<Ipv4Addr> {
-        let size = 1 << (IPV4_NET_PREFIX_MAX - self.prefix);
-        (n < size).then(|| {
+        (n < self.size()).then(|| {
             let addr: u32 = self.addr.into();
             let nth = (addr & self.mask_impl()) + n;
             nth.into()
@@ -270,7 +282,7 @@ impl std::str::FromStr for Ipv4Net {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let Some(ii) = s.find('/') else {
-            return Err(IpNetParseError::MissingSlash);
+            return Err(IpNetParseError::NoPrefix);
         };
 
         let addr_str = &s[..ii];
@@ -304,6 +316,7 @@ impl serde::Serialize for Ipv4Net {
     }
 }
 
+#[cfg(feature = "schemars")]
 const IPV4_NET_REGEX: &str = concat!(
     r#"^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}"#,
     r#"([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])"#,
@@ -336,6 +349,7 @@ impl schemars::JsonSchema for Ipv4Net {
     }
 }
 
+/// The highest value for an IPv6 subnet prefix
 pub const IPV6_NET_PREFIX_MAX: u8 = 128;
 
 /// An IPv6 subnet
@@ -346,6 +360,7 @@ pub struct Ipv6Net {
 }
 
 impl Ipv6Net {
+    /// Create a new Ipv4Net with the given base address and prefix length.
     pub fn new(addr: Ipv6Addr, prefix: u8) -> Result<Self, IpNetPrefixError> {
         if prefix > IPV6_NET_PREFIX_MAX {
             Err(IpNetPrefixError(prefix))
@@ -354,6 +369,7 @@ impl Ipv6Net {
         }
     }
 
+    /// Create an Ipv4Net that contains *exclusively* the given address.
     pub fn host_net(addr: Ipv6Addr) -> Self {
         Self {
             addr,
@@ -361,34 +377,47 @@ impl Ipv6Net {
         }
     }
 
-    pub fn is_host_net(&self) -> bool {
-        self.prefix == IPV6_NET_PREFIX_MAX
-    }
-
+    /// Return the base address.
     pub fn addr(&self) -> Ipv6Addr {
         self.addr
     }
 
+    /// Return the prefix length.
     pub fn prefix(&self) -> u8 {
         self.prefix
     }
 
+    /// Return true iff the subnet contains only the base address i.e. the
+    /// size is exactly one address.
+    pub fn is_host_net(&self) -> bool {
+        self.prefix == IPV6_NET_PREFIX_MAX
+    }
+
+    /// Return the number of addresses contained within this subnet.
     pub fn size(&self) -> u128 {
-        1u128 << self.prefix
+        1u128 << (IPV6_NET_PREFIX_MAX - self.prefix)
     }
 
     /// Return `true` if this subnetwork is in the IPv6 Unique Local Address
     /// range defined in RFC 4193, e.g., `fd00:/8`
     pub fn is_unique_local(&self) -> bool {
         // TODO: Delegate to `Ipv6Addr::is_unique_local()` when stabilized.
-        //self.addr.network().octets()[0] == 0xfd
-        todo!()
+        self.network().octets()[0] == 0xfd
+    }
+
+    // TODO should this be necessary or should we enforce during new?
+    // TODO aka first_address
+    /// XXX Canonical addr
+    pub fn network(&self) -> Ipv6Addr {
+        let addr: u128 = self.addr.into();
+        Ipv6Addr::from(addr & self.mask_impl())
     }
 
     fn mask_impl(&self) -> u128 {
         ((1u128 << self.prefix) - 1) << (IPV6_NET_PREFIX_MAX - self.prefix)
     }
 
+    /// Return the netmask address derived from prefix length.
     pub fn mask(&self) -> Ipv6Addr {
         self.mask_impl().into()
     }
@@ -402,15 +431,15 @@ impl Ipv6Net {
         (addr & mask) == (other & mask)
     }
 
-    // TODO should this be necessary or should we enforce during new?
-    // TODO aka first_address
-    /// XXX Canonical addr
-    pub fn network(&self) -> Ipv6Addr {
+    /// The broadcast address for this subnet which is also the last address.
+    pub fn broadcast(&self) -> Ipv6Addr {
         let addr: u128 = self.addr.into();
-        Ipv6Addr::from(addr & self.mask_impl())
+        let last = addr | ((1u128 << (IPV6_NET_PREFIX_MAX - self.prefix)) - 1);
+        Ipv6Addr::from(last)
     }
 
-    pub fn iter(&self) -> Ipv6NetIter {
+    /// Return an interator over the addresses of this subnet.
+    pub fn iter(&self) -> impl Iterator<Item = Ipv6Addr> {
         let addr: u128 = self.addr.into();
         let last = addr + ((1u128 << (IPV6_NET_PREFIX_MAX - self.prefix)) - 1);
         Ipv6NetIter {
@@ -419,24 +448,22 @@ impl Ipv6Net {
         }
     }
 
+    /// Return the nth address within this subnet or none if `n` is larger than
+    /// the size of the subnet.
     pub fn nth(&self, n: u128) -> Option<Ipv6Addr> {
-        let size = 1 << (IPV6_NET_PREFIX_MAX - self.prefix);
-        (n < size).then(|| {
+        (n < self.size()).then(|| {
             let addr: u128 = self.addr.into();
             let nth = (addr & self.mask_impl()) + n;
             nth.into()
         })
     }
 
-    pub fn broadcast(&self) -> Ipv6Addr {
-        let addr: u128 = self.addr.into();
-        let last = addr | ((1u128 << (IPV6_NET_PREFIX_MAX - self.prefix)) - 1);
-        Ipv6Addr::from(last)
-    }
-
+    /// Returns `true` iff this subnet is wholly contained within `other`.
     pub fn is_subnet_of(&self, other: &Self) -> bool {
         other.addr <= self.addr && other.broadcast() >= self.broadcast()
     }
+
+    /// Returns `true` iff `other` is wholly contained within this subnet.
     pub fn is_supernet_of(&self, other: &Self) -> bool {
         other.is_subnet_of(self)
     }
@@ -453,7 +480,7 @@ impl std::str::FromStr for Ipv6Net {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let Some(ii) = s.find('/') else {
-            return Err(IpNetParseError::MissingSlash);
+            return Err(IpNetParseError::NoPrefix);
         };
 
         let addr_str = &s[..ii];
@@ -487,6 +514,7 @@ impl serde::Serialize for Ipv6Net {
     }
 }
 
+#[cfg(feature = "schemars")]
 const IPV6_NET_REGEX: &str = concat!(
     r#"^("#,
     r#"([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|"#,
@@ -716,5 +744,20 @@ mod tests {
         assert_eq!(format!(r#""{}""#, net_str), ser);
         let net_des = serde_json::from_str::<IpNet>(&ser).unwrap();
         assert_eq!(net, net_des);
+    }
+
+    #[test]
+    fn test_ipnet_size() {
+        let net = Ipv4Net::host_net("1.2.3.4".parse().unwrap());
+        assert_eq!(net.size(), 1);
+
+        let net = Ipv4Net::new("1.2.3.4".parse().unwrap(), 24).unwrap();
+        assert_eq!(net.size(), 256);
+
+        let net = Ipv6Net::host_net("fd00:47::1".parse().unwrap());
+        assert_eq!(net.size(), 1);
+
+        let net = Ipv6Net::new("fd00:47::1".parse().unwrap(), 56).unwrap();
+        assert_eq!(net.size(), 1u128 << 72);
     }
 }
