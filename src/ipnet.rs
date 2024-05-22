@@ -80,8 +80,8 @@ impl IpNet {
     /// Return the prefix address (the base address with the mask applied).
     pub fn prefix(&self) -> IpAddr {
         match self {
-            IpNet::V4(inner) => inner.addr().into(),
-            IpNet::V6(inner) => inner.addr().into(),
+            IpNet::V4(inner) => inner.prefix().into(),
+            IpNet::V6(inner) => inner.prefix().into(),
         }
     }
 
@@ -232,8 +232,7 @@ impl Ipv4Net {
 
     /// Return the prefix address (the base address with the mask applied).
     pub fn prefix(&self) -> Ipv4Addr {
-        let addr: u32 = self.addr.into();
-        Ipv4Addr::from(addr & self.mask())
+        self.first_addr()
     }
 
     /// Return the network address for subnets as applicable; /31 and /32
@@ -250,7 +249,8 @@ impl Ipv4Net {
 
     /// Return the first address within this subnet.
     pub fn first_addr(&self) -> Ipv4Addr {
-        self.prefix()
+        let addr: u32 = self.addr.into();
+        Ipv4Addr::from(addr & self.mask())
     }
 
     /// Return the last address within this subnet.
@@ -295,6 +295,14 @@ impl Ipv4Net {
         let other: u32 = other.into();
 
         (addr & mask) == (other & mask)
+    }
+
+    /// Return the nth address within this subnet or none if `n` is larger than
+    /// the size of the subnet.
+    pub fn nth(&self, n: usize) -> Option<Ipv4Addr> {
+        let addr: u32 = self.addr.into();
+        let nth = addr.checked_add(n.try_into().ok()?)?;
+        (nth <= self.last_addr().into()).then_some(nth.into())
     }
 
     /// Produce an iterator over all addresses within this subnet.
@@ -451,6 +459,11 @@ impl Ipv6Net {
     /// a `u128`.
     pub fn size(&self) -> Option<u128> {
         1u128.checked_shl((IPV6_NET_WIDTH_MAX - self.width) as u32)
+    }
+
+    /// Return the prefix address (the base address with the mask applied).
+    pub fn prefix(&self) -> Ipv6Addr {
+        self.first_addr()
     }
 
     /// Return `true` if this subnetwork is in the IPv6 Unique Local Address
