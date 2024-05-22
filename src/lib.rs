@@ -9,6 +9,6 @@ mod ipnet;
 mod schema_util;
 
 pub use ipnet::{
-    IpNet, IpNetParseError, IpNetPrefixError, Ipv4Net, Ipv6Net, IPV4_NET_PREFIX_MAX,
-    IPV6_NET_PREFIX_MAX,
+    IpNet, IpNetParseError, IpNetPrefixError, Ipv4Net, Ipv6Net, IPV4_NET_WIDTH_MAX,
+    IPV6_NET_WIDTH_MAX,
 };
