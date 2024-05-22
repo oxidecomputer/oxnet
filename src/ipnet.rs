@@ -260,7 +260,7 @@ impl Ipv4Net {
     }
 
     /// Return the first host address within this subnet. For /31 and /32
-    /// subnets that is the first address after; for wider subnets this returns
+    /// subnets that is the first address; for wider subnets this returns
     /// the address immediately after the network address.
     pub fn first_host(&self) -> Ipv4Addr {
         let mask = self.mask();
