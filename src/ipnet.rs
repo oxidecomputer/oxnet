@@ -632,7 +632,8 @@ impl Iterator for Ipv4NetIter {
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
         let next = self.next?;
         let nth = next.checked_add(n as u32)?;
-        (nth <= self.last).then_some(nth.into())
+        self.next = (nth <= self.last).then_some(nth);
+        self.next()
     }
 }
 
@@ -657,7 +658,8 @@ impl Iterator for Ipv6NetIter {
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
         let next = self.next?;
         let nth = next.checked_add(n as u128)?;
-        (nth <= self.last).then_some(nth.into())
+        self.next = (nth <= self.last).then_some(nth);
+        self.next()
     }
 }
 
@@ -818,5 +820,28 @@ mod tests {
         assert_eq!(net.size(), Some(0x0000_0000_0000_0100_0000_0000_0000_0000));
         assert_eq!(net.width(), 56);
         assert_eq!(net.mask(), 0xffff_ffff_ffff_ff00_0000_0000_0000_0000);
+    }
+
+    #[test]
+    fn test_iter() {
+        let ipnet = Ipv4Net::new(Ipv4Addr::new(0, 0, 0, 0), 0).unwrap();
+
+        let actual = ipnet.addr_iter().take(5).collect::<Vec<_>>();
+        let expected = (0..5).map(Ipv4Addr::from).collect::<Vec<_>>();
+        assert_eq!(actual, expected);
+
+        let actual = ipnet.addr_iter().skip(5).take(10).collect::<Vec<_>>();
+        let expected = (5..15).map(Ipv4Addr::from).collect::<Vec<_>>();
+        assert_eq!(actual, expected);
+
+        let ipnet = Ipv6Net::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap();
+
+        let actual = ipnet.iter().take(5).collect::<Vec<_>>();
+        let expected = (0..5).map(Ipv6Addr::from).collect::<Vec<_>>();
+        assert_eq!(actual, expected);
+
+        let actual = ipnet.iter().skip(5).take(10).collect::<Vec<_>>();
+        let expected = (5..15).map(Ipv6Addr::from).collect::<Vec<_>>();
+        assert_eq!(actual, expected);
     }
 }
