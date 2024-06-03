@@ -41,6 +41,7 @@ impl std::fmt::Display for IpNetParseError {
         }
     }
 }
+impl std::error::Error for IpNetParseError {}
 
 /// A subnet, either IPv4 or IPv6
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
