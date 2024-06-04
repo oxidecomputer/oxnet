@@ -104,6 +104,14 @@ impl IpNet {
         }
     }
 
+    /// Return the netmask address derived from prefix length.
+    pub fn mask_addr(&self) -> IpAddr {
+        match self {
+            IpNet::V4(inner) => inner.mask_addr().into(),
+            IpNet::V6(inner) => inner.mask_addr().into(),
+        }
+    }
+
     /// Return `true` iff the subnet contains only the base address i.e. the
     /// size is exactly one address.
     pub const fn is_host_net(&self) -> bool {
@@ -232,6 +240,11 @@ impl Ipv4Net {
         u32::MAX
             .checked_shl((IPV4_NET_WIDTH_MAX - self.width) as u32)
             .unwrap_or(0)
+    }
+
+    /// Return the netmask address derived from prefix length.
+    pub fn mask_addr(&self) -> Ipv4Addr {
+        Ipv4Addr::from(self.mask())
     }
 
     /// Return true iff the subnet contains only the base address i.e. the
@@ -823,26 +836,37 @@ mod tests {
         assert_eq!(net.size(), Some(1));
         assert_eq!(net.width(), 32);
         assert_eq!(net.mask(), 0xffff_ffff);
+        assert_eq!(net.mask_addr(), Ipv4Addr::new(0xff, 0xff, 0xff, 0xff));
 
         let net = Ipv4Net::new("1.2.3.4".parse().unwrap(), 24).unwrap();
         assert_eq!(net.size(), Some(256));
         assert_eq!(net.width(), 24);
         assert_eq!(net.mask(), 0xffff_ff00);
+        assert_eq!(net.mask_addr(), Ipv4Addr::new(0xff, 0xff, 0xff, 0));
 
         let net = Ipv4Net::new("0.0.0.0".parse().unwrap(), 0).unwrap();
         assert_eq!(net.size(), None);
         assert_eq!(net.width(), 0);
         assert_eq!(net.mask(), 0);
+        assert_eq!(net.mask_addr(), Ipv4Addr::new(0, 0, 0, 0));
 
         let net = Ipv6Net::host_net("fd00:47::1".parse().unwrap());
         assert_eq!(net.size(), Some(1));
         assert_eq!(net.width(), 128);
         assert_eq!(net.mask(), 0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff);
+        assert_eq!(
+            net.mask_addr(),
+            Ipv6Addr::new(0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff)
+        );
 
         let net = Ipv6Net::new("fd00:47::1".parse().unwrap(), 56).unwrap();
         assert_eq!(net.size(), Some(0x0000_0000_0000_0100_0000_0000_0000_0000));
         assert_eq!(net.width(), 56);
         assert_eq!(net.mask(), 0xffff_ffff_ffff_ff00_0000_0000_0000_0000);
+        assert_eq!(
+            net.mask_addr(),
+            Ipv6Addr::new(0xffff, 0xffff, 0xffff, 0xff00, 0, 0, 0, 0)
+        );
     }
 
     #[test]
