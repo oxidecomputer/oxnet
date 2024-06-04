@@ -55,13 +55,23 @@ pub enum IpNet {
 }
 
 impl IpNet {
-    /// Create a new IpNet with the given base address and prefix length.
+    /// Create an IpNet with the given address and prefix width.
     pub fn new(addr: IpAddr, prefix: u8) -> Result<Self, IpNetPrefixError> {
         match addr {
             IpAddr::V4(addr) => Ok(Self::V4(Ipv4Net::new(addr, prefix)?)),
             IpAddr::V6(addr) => Ok(Self::V6(Ipv6Net::new(addr, prefix)?)),
         }
     }
+
+    /// Create an IpNet with the given address and prefix width with no checks
+    /// for the validity of the prefix length.
+    pub const fn new_unchecked(addr: IpAddr, prefix: u8) -> Self {
+        match addr {
+            IpAddr::V4(addr) => Self::V4(Ipv4Net::new_unchecked(addr, prefix)),
+            IpAddr::V6(addr) => Self::V6(Ipv6Net::new_unchecked(addr, prefix)),
+        }
+    }
+
     /// Create an IpNet that contains *exclusively* the given address.
     pub fn host_net(addr: IpAddr) -> Self {
         match addr {
@@ -71,10 +81,10 @@ impl IpNet {
     }
 
     /// Return the base address.
-    pub fn addr(&self) -> IpAddr {
+    pub const fn addr(&self) -> IpAddr {
         match self {
-            IpNet::V4(inner) => inner.addr().into(),
-            IpNet::V6(inner) => inner.addr().into(),
+            IpNet::V4(inner) => IpAddr::V4(inner.addr()),
+            IpNet::V6(inner) => IpAddr::V6(inner.addr()),
         }
     }
 
@@ -87,7 +97,7 @@ impl IpNet {
     }
 
     /// Return the prefix length.
-    pub fn width(&self) -> u8 {
+    pub const fn width(&self) -> u8 {
         match self {
             IpNet::V4(inner) => inner.width(),
             IpNet::V6(inner) => inner.width(),
@@ -96,7 +106,7 @@ impl IpNet {
 
     /// Return `true` iff the subnet contains only the base address i.e. the
     /// size is exactly one address.
-    pub fn is_host_net(&self) -> bool {
+    pub const fn is_host_net(&self) -> bool {
         match self {
             IpNet::V4(inner) => inner.is_host_net(),
             IpNet::V6(inner) => inner.is_host_net(),
@@ -194,8 +204,14 @@ impl Ipv4Net {
         }
     }
 
+    /// Create an Ipv4Net with the given address and prefix width with no
+    /// checks for the validity of the prefix length.
+    pub const fn new_unchecked(addr: Ipv4Addr, width: u8) -> Self {
+        Self { addr, width }
+    }
+
     /// Create an Ipv4Net that contains *exclusively* the given address.
-    pub fn host_net(addr: Ipv4Addr) -> Self {
+    pub const fn host_net(addr: Ipv4Addr) -> Self {
         Self {
             addr,
             width: IPV4_NET_WIDTH_MAX,
@@ -203,12 +219,12 @@ impl Ipv4Net {
     }
 
     /// Return the base address used to create this subnet.
-    pub fn addr(&self) -> Ipv4Addr {
+    pub const fn addr(&self) -> Ipv4Addr {
         self.addr
     }
 
     /// Return the prefix width.
-    pub fn width(&self) -> u8 {
+    pub const fn width(&self) -> u8 {
         self.width
     }
 
@@ -220,14 +236,14 @@ impl Ipv4Net {
 
     /// Return true iff the subnet contains only the base address i.e. the
     /// size is exactly one address.
-    pub fn is_host_net(&self) -> bool {
+    pub const fn is_host_net(&self) -> bool {
         self.width == IPV4_NET_WIDTH_MAX
     }
 
     /// Return the number of addresses contained within this subnet or None for
     /// a /0 subnet whose value would be one larger than can be represented in
     /// a `u32`.
-    pub fn size(&self) -> Option<u32> {
+    pub const fn size(&self) -> Option<u32> {
         1u32.checked_shl((IPV4_NET_WIDTH_MAX - self.width) as u32)
     }
 
@@ -420,8 +436,14 @@ impl Ipv6Net {
         }
     }
 
+    /// Create an Ipv6Net with the given address and prefix width with no
+    /// checks for the validity of the prefix length.
+    pub const fn new_unchecked(addr: Ipv6Addr, width: u8) -> Self {
+        Self { addr, width }
+    }
+
     /// Create an Ipv6Net that contains *exclusively* the given address.
-    pub fn host_net(addr: Ipv6Addr) -> Self {
+    pub const fn host_net(addr: Ipv6Addr) -> Self {
         Self {
             addr,
             width: IPV6_NET_WIDTH_MAX,
@@ -429,12 +451,12 @@ impl Ipv6Net {
     }
 
     /// Return the base address used to create this subnet.
-    pub fn addr(&self) -> Ipv6Addr {
+    pub const fn addr(&self) -> Ipv6Addr {
         self.addr
     }
 
     /// Return the prefix width.
-    pub fn width(&self) -> u8 {
+    pub const fn width(&self) -> u8 {
         self.width
     }
 
@@ -451,14 +473,14 @@ impl Ipv6Net {
 
     /// Return true iff the subnet contains only the base address i.e. the
     /// size is exactly one address.
-    pub fn is_host_net(&self) -> bool {
+    pub const fn is_host_net(&self) -> bool {
         self.width == IPV6_NET_WIDTH_MAX
     }
 
     /// Return the number of addresses contained within this subnet or None for
     /// a /0 subnet whose value would be one larger than can be represented in
     /// a `u128`.
-    pub fn size(&self) -> Option<u128> {
+    pub const fn size(&self) -> Option<u128> {
         1u128.checked_shl((IPV6_NET_WIDTH_MAX - self.width) as u32)
     }
 
