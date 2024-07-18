@@ -132,6 +132,16 @@ impl IpNet {
             (_, _) => false,
         }
     }
+
+    /// Return `true` if this is an IPv4 network.
+    pub const fn is_ipv4(&self) -> bool {
+        matches!(self, IpNet::V4(_))
+    }
+
+    /// Return `true` if this is an IPv6 network.
+    pub const fn is_ipv6(&self) -> bool {
+        matches!(self, IpNet::V6(_))
+    }
 }
 
 impl From<Ipv4Net> for IpNet {
