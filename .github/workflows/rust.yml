@@ -26,6 +26,8 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        # 1.78 is the MSRV
+        rust-version: [ stable, "1.78" ]
         features: [ all, default ]
         include:
           - features: all
