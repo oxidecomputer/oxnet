@@ -34,6 +34,9 @@ jobs:
             feature_flags: --all-features
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust-version }}
       - name: Report cargo version
         run: cargo --version
       - name: Report rustc version
