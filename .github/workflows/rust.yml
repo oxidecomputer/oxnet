@@ -26,12 +26,17 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        # 1.78 is the MSRV
+        rust-version: [ stable, "1.78" ]
         features: [ all, default ]
         include:
           - features: all
             feature_flags: --all-features
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust-version }}
       - name: Report cargo version
         run: cargo --version
       - name: Report rustc version
