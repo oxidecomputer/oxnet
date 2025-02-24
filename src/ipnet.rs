@@ -1,4 +1,4 @@
-// Copyright 2024 Oxide Computer Company
+// Copyright 2025 Oxide Computer Company
 
 use std::{
     net::{AddrParseError, IpAddr, Ipv4Addr, Ipv6Addr},
@@ -121,7 +121,32 @@ impl IpNet {
         }
     }
 
-    /// Return `true`` if the provided address is contained in self.
+    /// Return `true` iff the base address corresponds to the all-zeroes host
+    /// ID in the subnet.
+    pub fn is_network_address(&self) -> bool {
+        match self {
+            IpNet::V4(inner) => inner.is_network_address(),
+            IpNet::V6(inner) => inner.is_network_address(),
+        }
+    }
+
+    /// Return `true` iff this subnet is in a multicast address range.
+    pub const fn is_multicast(&self) -> bool {
+        match self {
+            IpNet::V4(inner) => inner.is_multicast(),
+            IpNet::V6(inner) => inner.is_multicast(),
+        }
+    }
+
+    /// Return `true` iff this subnet is in a loopback address range.
+    pub const fn is_loopback(&self) -> bool {
+        match self {
+            IpNet::V4(inner) => inner.is_loopback(),
+            IpNet::V6(inner) => inner.is_loopback(),
+        }
+    }
+
+    /// Return `true` if the provided address is contained in self.
     ///
     /// This returns `false` if the address and the network are of different IP
     /// families.
@@ -129,6 +154,38 @@ impl IpNet {
         match (self, addr) {
             (IpNet::V4(net), IpAddr::V4(ip)) => net.contains(ip),
             (IpNet::V6(net), IpAddr::V6(ip)) => net.contains(ip),
+            (_, _) => false,
+        }
+    }
+
+    /// Returns `true` iff this subnet is wholly contained within `other`.
+    ///
+    /// This returns `false` if the address and the network are of different IP
+    /// families.
+    pub fn is_subnet_of(&self, other: &Self) -> bool {
+        match (self, other) {
+            (IpNet::V4(net), IpNet::V4(other)) => net.is_subnet_of(other),
+            (IpNet::V6(net), IpNet::V6(other)) => net.is_subnet_of(other),
+            (_, _) => false,
+        }
+    }
+
+    /// Returns `true` iff `other` is wholly contained within this subnet.
+    ///
+    /// This returns `false` if the address and the network are of different IP
+    /// families.
+    pub fn is_supernet_of(&self, other: &Self) -> bool {
+        other.is_subnet_of(self)
+    }
+
+    /// Return `true` if the provided `IpNet` shares any IP addresses with `self`
+    /// (e.g., `self.is_subnet_of(other)`, or vice-versa).
+    ///
+    /// This returns `false` if the networks are of different IP families.
+    pub fn overlaps(&self, other: &Self) -> bool {
+        match (self, other) {
+            (IpNet::V4(net), IpNet::V4(other)) => net.overlaps(other),
+            (IpNet::V6(net), IpNet::V6(other)) => net.overlaps(other),
             (_, _) => false,
         }
     }
@@ -263,6 +320,22 @@ impl Ipv4Net {
         self.width == IPV4_NET_WIDTH_MAX
     }
 
+    /// Return `true` iff the base address corresponds to the all-zeroes host
+    /// ID in the subnet.
+    pub fn is_network_address(&self) -> bool {
+        self.addr == self.prefix()
+    }
+
+    /// Return `true` iff this subnet is in a multicast address range.
+    pub const fn is_multicast(&self) -> bool {
+        self.addr.is_multicast()
+    }
+
+    /// Return `true` iff this subnet is in a loopback address range.
+    pub const fn is_loopback(&self) -> bool {
+        self.addr.is_loopback()
+    }
+
     /// Return the number of addresses contained within this subnet or None for
     /// a /0 subnet whose value would be one larger than can be represented in
     /// a `u32`.
@@ -361,6 +434,28 @@ impl Ipv4Net {
             next: Some(self.first_host().into()),
             last: self.last_host().into(),
         }
+    }
+
+    /// Returns `true` iff this subnet is wholly contained within `other`.
+    pub fn is_subnet_of(&self, other: &Self) -> bool {
+        other.first_addr() <= self.first_addr() && other.last_addr() >= self.last_addr()
+    }
+
+    /// Returns `true` iff `other` is wholly contained within this subnet.
+    pub fn is_supernet_of(&self, other: &Self) -> bool {
+        other.is_subnet_of(self)
+    }
+
+    /// Return `true` if the `other` shares any IP addresses with `self`
+    /// (e.g., `self.is_subnet_of(other)`, or vice-versa).
+    pub fn overlaps(&self, other: &Self) -> bool {
+        let (parent, child) = if self.width <= other.width {
+            (self, other)
+        } else {
+            (other, self)
+        };
+
+        child.is_subnet_of(parent)
     }
 }
 
@@ -500,6 +595,22 @@ impl Ipv6Net {
         self.width == IPV6_NET_WIDTH_MAX
     }
 
+    /// Return `true` iff the base address corresponds to the all-zeroes host
+    /// ID in the subnet.
+    pub fn is_network_address(&self) -> bool {
+        self.addr == self.prefix()
+    }
+
+    /// Return `true` iff this subnet is in a multicast address range.
+    pub const fn is_multicast(&self) -> bool {
+        self.addr.is_multicast()
+    }
+
+    /// Return `true` iff this subnet is in a loopback address range.
+    pub const fn is_loopback(&self) -> bool {
+        self.addr.is_loopback()
+    }
+
     /// Return the number of addresses contained within this subnet or None for
     /// a /0 subnet whose value would be one larger than can be represented in
     /// a `u128`.
@@ -564,6 +675,18 @@ impl Ipv6Net {
     /// Returns `true` iff `other` is wholly contained within this subnet.
     pub fn is_supernet_of(&self, other: &Self) -> bool {
         other.is_subnet_of(self)
+    }
+
+    /// Return `true` if the `other` shares any IP addresses with `self`
+    /// (e.g., `self.is_subnet_of(other)`, or vice-versa).
+    pub fn overlaps(&self, other: &Self) -> bool {
+        let (parent, child) = if self.width <= other.width {
+            (self, other)
+        } else {
+            (other, self)
+        };
+
+        child.is_subnet_of(parent)
     }
 }
 
@@ -900,5 +1023,57 @@ mod tests {
         let actual = ipnet.iter().skip(5).take(10).collect::<Vec<_>>();
         let expected = (5..15).map(Ipv6Addr::from).collect::<Vec<_>>();
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_contains() {
+        let default_v4: IpNet = "0.0.0.0/0".parse().unwrap();
+        let private_v4: IpNet = "10.0.0.0/8".parse().unwrap();
+        let privater_v4_c0: IpNet = "10.0.0.0/9".parse().unwrap();
+        let privater_v4_c1: IpNet = "10.128.0.0/9".parse().unwrap();
+
+        assert!(private_v4.is_subnet_of(&default_v4));
+        assert!(privater_v4_c0.is_subnet_of(&default_v4));
+        assert!(privater_v4_c0.is_subnet_of(&private_v4));
+        assert!(privater_v4_c1.is_subnet_of(&default_v4));
+        assert!(privater_v4_c1.is_subnet_of(&private_v4));
+
+        assert!(private_v4.is_supernet_of(&privater_v4_c0));
+        assert!(private_v4.is_supernet_of(&privater_v4_c1));
+
+        assert!(!privater_v4_c0.overlaps(&privater_v4_c1));
+        assert!(!privater_v4_c1.overlaps(&privater_v4_c0));
+        assert!(privater_v4_c0.overlaps(&privater_v4_c0));
+        assert!(privater_v4_c0.overlaps(&private_v4));
+        assert!(private_v4.overlaps(&privater_v4_c0));
+
+        let child_ip: IpNet = "10.128.20.20/16".parse().unwrap();
+        assert!(child_ip.is_subnet_of(&privater_v4_c1));
+        assert!(!child_ip.is_subnet_of(&privater_v4_c0));
+    }
+
+    #[test]
+    fn test_is_network_addr() {
+        let v4_net: IpNet = "127.0.0.0/8".parse().unwrap();
+        let v4_host: IpNet = "127.0.0.1/8".parse().unwrap();
+        let v6_net: IpNet = "fd00:1234:5678::/48".parse().unwrap();
+        let v6_host: IpNet = "fd00:1234:5678::7777/48".parse().unwrap();
+
+        assert!(v4_net.is_network_address());
+        assert!(!v4_host.is_network_address());
+        assert!(v6_net.is_network_address());
+        assert!(!v6_host.is_network_address());
+
+        // We don't return a `.network()` for a /31 or /32, but the host bits
+        // are zero in these addresses (i.e., they're in a canonical form).
+        let two_addr: IpNet = "10.7.7.64/31".parse().unwrap();
+        let one_addr: IpNet = "10.7.7.64/32".parse().unwrap();
+        assert!(two_addr.is_network_address());
+        assert!(one_addr.is_network_address());
+
+        // The IpNet as used in a default route should be considered valid in
+        // this form.
+        let unspec: IpNet = "0.0.0.0/0".parse().unwrap();
+        assert!(unspec.is_network_address());
     }
 }
