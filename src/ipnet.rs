@@ -139,9 +139,10 @@ impl IpNet {
     }
 
     /// Return `true` iff this subnet is in a multicast address range with
-    /// administrative scope (site-local or organization-local) as defined in
-    /// [RFC 4291].
+    /// administrative scope (admin-local, site-local or organization-local) as
+    /// defined in [RFC 7346] and [RFC 4291].
     ///
+    /// [RFC 7346]: https://tools.ietf.org/html/rfc7346
     /// [RFC 4291]: https://tools.ietf.org/html/rfc4291
     pub const fn is_admin_scoped_multicast(&self) -> bool {
         match self {
@@ -628,9 +629,10 @@ impl Ipv6Net {
     }
 
     /// Return `true` if this address is a multicast address with
-    /// administrative scope (site-local or organization-local) as defined in
-    /// [RFC 4291].
+    /// administrative scope (admin-local, site-local or organization-local) as
+    /// defined in [RFC 7346] and [RFC 4291].
     ///
+    /// [RFC 7346]: https://tools.ietf.org/html/rfc7346
     /// [RFC 4291]: https://tools.ietf.org/html/rfc4291
     pub const fn is_admin_scoped_multicast(&self) -> bool {
         if !self.addr.is_multicast() {
@@ -641,8 +643,9 @@ impl Ipv6Net {
         let segments = self.addr.segments();
         let scope = (segments[0] & 0x000F) as u8;
 
-        // RFC 4291: Scope values 5 (site-local) and 8 (organization-local)
-        matches!(scope, 0x5 | 0x8)
+        // RFC 4291/7346: Scope values 4 (admin-local), 5 (site-local) and
+        // 8 (organization-local)
+        matches!(scope, 0x4 | 0x5 | 0x8)
     }
 
     /// Return `true` iff this subnet is in a loopback address range.
@@ -1137,11 +1140,14 @@ mod tests {
         let v6_site_scoped_mcast: IpNet = "ff05::1/128".parse().unwrap();
         // Test for multicast_admin_scoped (organization-local)
         let v6_org_scoped_mcast: IpNet = "ff08::1/128".parse().unwrap();
+        //Test for multicast_admin_scoped (admin-local)
+        let v6_admin_scoped_mcast: IpNet = "ff04::1/128".parse().unwrap();
         // Test for a multicast address that is not admin scoped
         let v6_not_admin_scoped_mcast: IpNet = "ff02::1/128".parse().unwrap();
 
         assert!(v6_site_scoped_mcast.is_admin_scoped_multicast());
         assert!(v6_org_scoped_mcast.is_admin_scoped_multicast());
+        assert!(v6_admin_scoped_mcast.is_admin_scoped_multicast());
         assert!(!v6_not_admin_scoped_mcast.is_admin_scoped_multicast());
         // Always false for IPv4
         assert!(!v4_mcast.is_admin_scoped_multicast());
