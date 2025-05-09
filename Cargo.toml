@@ -1,8 +1,8 @@
 [package]
 name = "oxnet"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
-rust-version = "1.78.0"
+rust-version = "1.84.0"
 license = "MIT OR Apache-2.0"
 description = "commonly used networking primitives with common traits implemented"
 readme = "README.md"

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2] - 2025-05-25
+
+* Bumps Rust min-version to 1.84 for direct `is_unique_local` call on IPv6
+      addresses.
+* Adds `is_admin_scoped_multicast` check for multicast IPv6 addresses that are
+      site-local or org scoped
+
 ## [0.1.1] - 2025-02-25
 
 * Adds `is_subnet_of`/`is_supernet_of`/`overlaps`, for verifying disjoint
@@ -12,5 +19,6 @@
 
 Initial release.
 
+[0.1.2]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.2
 [0.1.1]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.1
 [0.1.0]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.0
