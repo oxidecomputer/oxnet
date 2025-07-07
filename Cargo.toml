@@ -19,7 +19,7 @@ serde = ["dep:serde"]
 std = []
 
 [dependencies]
-schemars = {version = "0.8.22", optional = true }
+schemars = {version = "1.0.4", optional = true }
 serde = { version = "1.0.219", optional = true }
 serde_json = { version = "1.0.140", optional = true }
 ipnetwork = { version = "0.21.1", optional = true }
