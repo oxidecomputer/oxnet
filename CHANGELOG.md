@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.0] - 2025-07-18
+
+* Adds `MulticastMac` trait for deriving multicast MAC addresses from IP addresses
+* Implements RFC 1112 (IPv4) and RFC 2464 (IPv6) multicast MAC derivation
+* Optional `macaddr` feature for `MacAddr6` integration
+
 ## [0.1.2] - 2025-05-25
 
 * Bumps Rust min-version to 1.84 for direct `is_unique_local` call on IPv6

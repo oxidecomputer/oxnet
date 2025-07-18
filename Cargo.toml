@@ -1,6 +1,6 @@
 [package]
 name = "oxnet"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.84.0"
 license = "MIT OR Apache-2.0"
@@ -14,6 +14,7 @@ categories = ["network-programming", "web-programming"]
 [features]
 default = ["serde", "schemars", "ipnetwork"]
 ipnetwork = ["dep:ipnetwork"]
+macaddr = ["dep:macaddr"]
 schemars = ["dep:schemars", "dep:serde_json"]
 serde = ["dep:serde"]
 std = []
@@ -23,6 +24,7 @@ schemars = {version = "0.8.22", optional = true }
 serde = { version = "1.0.219", optional = true }
 serde_json = { version = "1.0.140", optional = true }
 ipnetwork = { version = "0.21.1", optional = true }
+macaddr = { version = "1.0", optional = true }
 
 [dev-dependencies]
 expectorate = "1.2.0"
