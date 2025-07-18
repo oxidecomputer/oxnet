@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.2.0] - 2025-07-18
+## [0.1.3] - 2025-07-18
 
 * Adds `MulticastMac` trait for deriving multicast MAC addresses from IP addresses
 * Implements RFC 1112 (IPv4) and RFC 2464 (IPv6) multicast MAC derivation
@@ -25,6 +25,7 @@
 
 Initial release.
 
+[0.1.3]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.3
 [0.1.2]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.2
 [0.1.1]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.1
 [0.1.0]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.0

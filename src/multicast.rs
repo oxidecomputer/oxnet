@@ -1,17 +1,10 @@
 // Copyright 2025 Oxide Computer Company
 
 //! Multicast MAC address derivation from IP addresses.
-//!
-//! This module provides functions for deriving multicast MAC addresses from
-//! IPv4 and IPv6 multicast IP addresses according to RFC standards:
-//!
-//! - IPv4: [RFC 1112 Section 6.4][rfc1112]
-//! - IPv6: [RFC 2464 Section 7][rfc2464]
-//!
-//! [rfc1112]: https://datatracker.ietf.org/doc/html/rfc1112#section-6.4
-//! [rfc2464]: https://datatracker.ietf.org/doc/html/rfc2464#section-7
 
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+
+use crate::IpNet;
 
 /// Trait for deriving multicast MAC addresses from IP addresses.
 pub trait MulticastMac {
@@ -68,6 +61,15 @@ impl MulticastMac for Ipv6Addr {
         let octets = self.octets();
         // Take the last 4 bytes (32 bits) of the IPv6 address
         [0x33, 0x33, octets[12], octets[13], octets[14], octets[15]]
+    }
+}
+
+impl MulticastMac for IpNet {
+    fn derive_multicast_mac(&self) -> [u8; 6] {
+        match self {
+            IpNet::V4(ipv4_net) => ipv4_net.addr().derive_multicast_mac(),
+            IpNet::V6(ipv6_net) => ipv6_net.addr().derive_multicast_mac(),
+        }
     }
 }
 
@@ -133,6 +135,23 @@ mod tests {
 
         // Test IPv6 network
         let ipv6_net = IpNetwork::from_str("ff02::1/128").unwrap();
+        let mac = ipv6_net.derive_multicast_mac();
+        let expected = [0x33, 0x33, 0x00, 0x00, 0x00, 0x01];
+        assert_eq!(mac, expected);
+    }
+
+    #[test]
+    fn test_derive_multicast_mac_ipnet() {
+        use std::str::FromStr;
+
+        // Test IPv4 network
+        let ipv4_net = IpNet::from_str("224.1.1.1/32").unwrap();
+        let mac = ipv4_net.derive_multicast_mac();
+        let expected = [0x01, 0x00, 0x5e, 0x01, 0x01, 0x01];
+        assert_eq!(mac, expected);
+
+        // Test IPv6 network
+        let ipv6_net = IpNet::from_str("ff02::1/128").unwrap();
         let mac = ipv6_net.derive_multicast_mac();
         let expected = [0x33, 0x33, 0x00, 0x00, 0x00, 0x01];
         assert_eq!(mac, expected);
