@@ -34,7 +34,7 @@ impl std::fmt::Display for IpNetParseError {
         match self {
             IpNetParseError::InvalidAddr(e) => e.fmt(f),
             IpNetParseError::PrefixValue(e) => {
-                write!(f, "invalid prefix value: {}", e)
+                write!(f, "invalid prefix value: {e}")
             }
             IpNetParseError::NoPrefix => write!(f, "missing '/' character"),
             IpNetParseError::InvalidPrefix(e) => e.fmt(f),
@@ -238,8 +238,8 @@ impl From<Ipv6Net> for IpNet {
 impl std::fmt::Display for IpNet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            IpNet::V4(inner) => write!(f, "{}", inner),
-            IpNet::V6(inner) => write!(f, "{}", inner),
+            IpNet::V4(inner) => write!(f, "{inner}"),
+            IpNet::V6(inner) => write!(f, "{inner}"),
         }
     }
 }
@@ -519,7 +519,7 @@ impl serde::Serialize for Ipv4Net {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_str(&format!("{}", self))
+        serializer.serialize_str(&format!("{self}"))
     }
 }
 
@@ -771,7 +771,7 @@ impl serde::Serialize for Ipv6Net {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_str(&format!("{}", self))
+        serializer.serialize_str(&format!("{self}"))
     }
 }
 
