@@ -1,5 +1,9 @@
 # Changelog
 
+## Next
+
+* Bumps Rust min-version to 1.85
+
 ## [0.1.3] - 2025-07-18
 
 * Adds `MulticastMac` trait for deriving multicast MAC addresses from IP addresses
