@@ -28,4 +28,4 @@ macaddr = { version = "1.0.1", optional = true }
 
 [dev-dependencies]
 expectorate = "1.2.0"
-regress = "0.10.3"
+regress = "0.10.4"
