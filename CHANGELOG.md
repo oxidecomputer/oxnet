@@ -2,7 +2,14 @@
 
 ## Next
 
+## [0.1.4] - 2025-11-20
+
 * Bumps Rust min-version to 1.85
+* `is_admin_scoped_multicast()` now covers IPv4 (239.0.0.0/8) in addition to IPv6 (scopes 4, 5, 8)
+* Adds `is_admin_local_multicast()` for IPv6 scope 4
+* Adds `is_local_multicast()` for IPv4 Local scope (239.255.0.0/16)
+* Adds `is_site_local_multicast()` for IPv6 scope 5
+* Adds `is_org_local_multicast()` for IPv4 (239.192.0.0/14) and IPv6 scope 8
 
 ## [0.1.3] - 2025-07-18
 
