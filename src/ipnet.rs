@@ -138,7 +138,7 @@ impl IpNet {
         }
     }
 
-    /// Return `true` iff this subnet is in an administratively scoped multicast
+    /// Return `true` iff this subnet is in an administratively-scoped multicast
     /// address range with boundaries that are administratively configured.
     /// For IPv4, this is 239.0.0.0/8 as defined in [RFC 2365] and [RFC 5771].
     /// For IPv6, this includes scopes 4, 5, and 8 (admin-local, site-local,
@@ -155,37 +155,48 @@ impl IpNet {
         }
     }
 
-    /// Return `true` iff this subnet is in an admin-local multicast address range
-    /// (scope 4). For IPv4, this is 239.0.0.0/8 as defined in [RFC 5771].
-    /// For IPv6, this is scope 4 as defined in [RFC 7346] and [RFC 4291].
+    /// Return `true` iff this subnet is in an admin-local multicast address
+    /// range (scope 4) as defined in [RFC 7346] and [RFC 4291].
+    /// This is only defined for IPv6. IPv4 does not have an equivalent
+    /// "admin-local" scope.
     ///
-    /// Note: This is distinct from `is_administratively_scoped_multicast()` which
-    /// covers all administratively configured scopes (4, 5, 8 for IPv6).
-    ///
-    /// [RFC 5771]: https://tools.ietf.org/html/rfc5771
     /// [RFC 7346]: https://tools.ietf.org/html/rfc7346
     /// [RFC 4291]: https://tools.ietf.org/html/rfc4291
-    pub const fn is_admin_scoped_multicast(&self) -> bool {
+    pub const fn is_admin_local_multicast(&self) -> bool {
         match self {
-            IpNet::V4(inner) => inner.is_admin_scoped_multicast(),
-            IpNet::V6(inner) => inner.is_admin_scoped_multicast(),
+            IpNet::V4(_inner) => false,
+            IpNet::V6(inner) => inner.is_admin_local_multicast(),
+        }
+    }
+
+    /// Return `true` iff this subnet is in a local multicast address range.
+    /// For IPv4, this is 239.255.0.0/16 (IPv4 Local Scope) as defined in
+    /// [RFC 2365]. IPv6 does not have an equivalent "local" scope.
+    ///
+    /// [RFC 2365]: https://tools.ietf.org/html/rfc2365
+    pub const fn is_local_multicast(&self) -> bool {
+        match self {
+            IpNet::V4(inner) => inner.is_local_multicast(),
+            IpNet::V6(_inner) => false,
         }
     }
 
     /// Return `true` iff this subnet is in a site-local multicast address range.
-    /// This is only defined for IPv6 (scope 5) as defined in [RFC 7346] and [RFC 4291].
-    /// IPv4 does not have a site-local multicast scope.
+    /// This is only defined for IPv6 (scope 5) as defined in [RFC 7346] and
+    /// [RFC 4291]. IPv4 does not have a site-local multicast scope.
     ///
     /// [RFC 7346]: https://tools.ietf.org/html/rfc7346
     /// [RFC 4291]: https://tools.ietf.org/html/rfc4291
     pub const fn is_site_local_multicast(&self) -> bool {
         match self {
-            IpNet::V4(_inner) => false, // IPv4 does not have site-local multicast scope
+            IpNet::V4(_inner) => false,
             IpNet::V6(inner) => inner.is_site_local_multicast(),
         }
     }
 
-    /// Return `true` iff this subnet is in an organization-local multicast address range.
+    /// Return `true` iff this subnet is in an organization-local multicast
+    /// address range.
+    ///
     /// For IPv4, this is 239.192.0.0/14 as defined in [RFC 2365].
     /// For IPv6, this is scope 8 as defined in [RFC 7346] and [RFC 4291].
     ///
@@ -412,14 +423,14 @@ impl Ipv4Net {
         self.addr.octets()[0] == 239
     }
 
-    /// Return `true` iff this subnet is in an admin-local multicast address range
-    /// (239.0.0.0/8) as defined in [RFC 5771]. For IPv4, this is equivalent to
-    /// `is_administratively_scoped_multicast()`.
+    /// Return `true` iff this subnet is in a local multicast address range
+    /// (239.255.0.0/16) as defined in [RFC 2365]. This is the IPv4 Local Scope.
     ///
-    /// [RFC 5771]: https://tools.ietf.org/html/rfc5771
-    pub const fn is_admin_scoped_multicast(&self) -> bool {
-        // For IPv4, admin-scoped encompasses the entire administratively scoped block
-        self.is_administratively_scoped_multicast()
+    /// [RFC 2365]: https://tools.ietf.org/html/rfc2365
+    pub const fn is_local_multicast(&self) -> bool {
+        // RFC 2365: 239.255.0.0/16 is defined to be the IPv4 Local Scope
+        let octets = self.addr.octets();
+        octets[0] == 239 && octets[1] == 255
     }
 
     /// Return `true` iff this subnet is in an organization-local multicast address
@@ -792,7 +803,7 @@ impl Ipv6Net {
     ///
     /// [RFC 7346]: https://tools.ietf.org/html/rfc7346
     /// [RFC 4291]: https://tools.ietf.org/html/rfc4291
-    pub const fn is_admin_scoped_multicast(&self) -> bool {
+    pub const fn is_admin_local_multicast(&self) -> bool {
         matches!(self.multicast_scope(), Some(MulticastScopeV6::AdminLocal))
     }
 
@@ -1306,53 +1317,60 @@ mod tests {
         assert!(!v6_not_mcast.is_multicast());
 
         // Test for site-local multicast (scope 5)
-        let v6_site_scoped_mcast: IpNet = "ff05::1/128".parse().unwrap();
+        let v6_site_local_mcast: IpNet = "ff05::1/128".parse().unwrap();
         // Test for organization-local multicast (scope 8)
-        let v6_org_scoped_mcast: IpNet = "ff08::1/128".parse().unwrap();
+        let v6_org_local_mcast: IpNet = "ff08::1/128".parse().unwrap();
         // Test for admin-local multicast (scope 4)
-        let v6_admin_scoped_mcast: IpNet = "ff04::1/128".parse().unwrap();
+        let v6_admin_local_mcast: IpNet = "ff04::1/128".parse().unwrap();
         // Test for a multicast address that is not administratively scoped (link-local, scope 2)
         let v6_link_local_mcast: IpNet = "ff02::1/128".parse().unwrap();
 
         // Test administratively scoped multicast (covers scopes 4, 5, 8 for IPv6, 239/8 for IPv4)
-        assert!(v6_admin_scoped_mcast.is_administratively_scoped_multicast());
-        assert!(v6_site_scoped_mcast.is_administratively_scoped_multicast());
-        assert!(v6_org_scoped_mcast.is_administratively_scoped_multicast());
+        assert!(v6_admin_local_mcast.is_administratively_scoped_multicast());
+        assert!(v6_site_local_mcast.is_administratively_scoped_multicast());
+        assert!(v6_org_local_mcast.is_administratively_scoped_multicast());
         assert!(!v6_link_local_mcast.is_administratively_scoped_multicast()); // scope 2 is not admin-configured
         assert!(!v6_not_mcast.is_administratively_scoped_multicast());
 
-        // Test IPv4 admin-scoped multicast (239.0.0.0/8)
-        let v4_admin_scoped_mcast: IpNet = "239.0.0.1/32".parse().unwrap();
-        let v4_admin_scoped_mcast_range: IpNet = "239.192.0.0/16".parse().unwrap();
-        assert!(v4_admin_scoped_mcast.is_admin_scoped_multicast());
-        assert!(v4_admin_scoped_mcast_range.is_admin_scoped_multicast());
-        assert!(!v4_mcast.is_admin_scoped_multicast()); // 224.0.0.1 is not in 239/8
-
-        // Test IPv4 administratively scoped (same as admin-scoped for IPv4)
-        assert!(v4_admin_scoped_mcast.is_administratively_scoped_multicast());
-        assert!(v4_admin_scoped_mcast_range.is_administratively_scoped_multicast());
+        // Test IPv4 administratively scoped (239.0.0.0/8)
+        let v4_admin_scoped: IpNet = "239.0.0.1/32".parse().unwrap();
+        let v4_admin_scoped_range: IpNet = "239.192.0.0/16".parse().unwrap();
+        assert!(v4_admin_scoped.is_administratively_scoped_multicast());
+        assert!(v4_admin_scoped_range.is_administratively_scoped_multicast());
         assert!(!v4_mcast.is_administratively_scoped_multicast());
 
-        // Test admin-local multicast (scope 4)
-        assert!(!v6_site_scoped_mcast.is_admin_scoped_multicast());
-        assert!(!v6_org_scoped_mcast.is_admin_scoped_multicast());
-        assert!(v6_admin_scoped_mcast.is_admin_scoped_multicast());
-        assert!(!v6_link_local_mcast.is_admin_scoped_multicast());
-        assert!(!v6_not_mcast.is_admin_scoped_multicast());
+        // Test IPv6 admin-local multicast (scope 4) - IPv4 does not have this
+        assert!(!v6_site_local_mcast.is_admin_local_multicast());
+        assert!(!v6_org_local_mcast.is_admin_local_multicast());
+        assert!(v6_admin_local_mcast.is_admin_local_multicast());
+        assert!(!v6_link_local_mcast.is_admin_local_multicast());
+        assert!(!v6_not_mcast.is_admin_local_multicast());
+        assert!(!v4_mcast.is_admin_local_multicast()); // IPv4 does not have admin-local
+        assert!(!v4_admin_scoped.is_admin_local_multicast()); // IPv4 does not have admin-local
+
+        // Test IPv4 local multicast (239.255.0.0/16) - IPv6 does not have this
+        let v4_local_mcast: IpNet = "239.255.0.1/32".parse().unwrap();
+        let v4_local_mcast_range: IpNet = "239.255.128.0/24".parse().unwrap();
+        let v4_not_local: IpNet = "239.254.255.255/32".parse().unwrap();
+        assert!(v4_local_mcast.is_local_multicast());
+        assert!(v4_local_mcast_range.is_local_multicast());
+        assert!(!v4_not_local.is_local_multicast());
+        assert!(!v4_mcast.is_local_multicast()); // 224.0.0.1 is not in 239.255/16
+        assert!(!v6_admin_local_mcast.is_local_multicast()); // IPv6 does not have local scope
 
         // Test site-local multicast (scope 5)
-        assert!(v6_site_scoped_mcast.is_site_local_multicast());
-        assert!(!v6_org_scoped_mcast.is_site_local_multicast());
-        assert!(!v6_admin_scoped_mcast.is_site_local_multicast());
+        assert!(v6_site_local_mcast.is_site_local_multicast());
+        assert!(!v6_org_local_mcast.is_site_local_multicast());
+        assert!(!v6_admin_local_mcast.is_site_local_multicast());
         assert!(!v6_link_local_mcast.is_site_local_multicast());
         assert!(!v6_not_mcast.is_site_local_multicast());
         assert!(!v4_mcast.is_site_local_multicast());
 
         // Test organization-local multicast
         // IPv6 (scope 8)
-        assert!(!v6_site_scoped_mcast.is_org_local_multicast());
-        assert!(v6_org_scoped_mcast.is_org_local_multicast());
-        assert!(!v6_admin_scoped_mcast.is_org_local_multicast());
+        assert!(!v6_site_local_mcast.is_org_local_multicast());
+        assert!(v6_org_local_mcast.is_org_local_multicast());
+        assert!(!v6_admin_local_mcast.is_org_local_multicast());
         assert!(!v6_link_local_mcast.is_org_local_multicast());
         assert!(!v6_not_mcast.is_org_local_multicast());
 
