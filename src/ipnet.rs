@@ -138,8 +138,13 @@ impl IpNet {
         }
     }
 
-    /// Return `true` iff this subnet is in an admin scoped multicast
-    /// address range with boundaries that are admin configured.
+    /// Return `true` iff this subnet is in an administratively scoped multicast
+    /// address range with boundaries that are administratively configured.
+    ///
+    /// "Admin" is short for "administratively"; these scopes have boundaries
+    /// configured by network administrators, unlike well-known scopes like
+    /// link-local or global.
+    ///
     /// For IPv4, this is 239.0.0.0/8 as defined in [RFC 2365] and [RFC 5771].
     /// For IPv6, this includes scopes 4, 5, and 8 (admin-local, site-local,
     /// organization-local) as defined in [RFC 7346] and [RFC 4291].
@@ -412,13 +417,17 @@ impl Ipv4Net {
         self.addr.is_multicast()
     }
 
-    /// Return `true` iff this subnet is in an admin scoped multicast
+    /// Return `true` iff this subnet is in an administratively scoped multicast
     /// address range (239.0.0.0/8) as defined in [RFC 2365] and [RFC 5771].
+    ///
+    /// "Admin" is short for "administratively"; these scopes have boundaries
+    /// configured by network administrators.
     ///
     /// [RFC 2365]: https://tools.ietf.org/html/rfc2365
     /// [RFC 5771]: https://tools.ietf.org/html/rfc5771
     pub const fn is_admin_scoped_multicast(&self) -> bool {
-        // RFC 2365/RFC 5771, §10: The admin scoped IPv4 multicast space is 239/8
+        // RFC 2365/RFC 5771, §10: The administratively scoped IPv4 multicast
+        // space is 239/8
         // IPv4 multicast is 224.0.0.0/4, so 239/8 is a subset of that
         self.addr.octets()[0] == 239
     }
@@ -661,18 +670,19 @@ pub enum MulticastScopeV6 {
     InterfaceLocal = 0x1,
     /// Link-local scope (0x2)
     LinkLocal = 0x2,
-    /// Admin-local scope (0x4) - admin configured
+    /// Admin-local scope (0x4) - administratively configured
     AdminLocal = 0x4,
-    /// Site-local scope (0x5) - admin configured
+    /// Site-local scope (0x5) - administratively configured
     SiteLocal = 0x5,
-    /// Organization-local scope (0x8) - admin configured
+    /// Organization-local scope (0x8) - administratively configured
     OrganizationLocal = 0x8,
     /// Global scope (0xE)
     Global = 0xE,
 }
 
 impl MulticastScopeV6 {
-    /// Returns `true` if this scope is admin configured (scopes 4, 5, 8).
+    /// Returns `true` if this scope is administratively configured
+    /// (scopes 4, 5, 8).
     pub const fn is_admin_scoped_multicast(&self) -> bool {
         matches!(
             self,
@@ -784,8 +794,13 @@ impl Ipv6Net {
         MulticastScopeV6::from_u8(scope)
     }
 
-    /// Return `true` iff this subnet is in an admin scoped multicast
-    /// address range with boundaries that are admin configured.
+    /// Return `true` iff this subnet is in an administratively scoped multicast
+    /// address range with boundaries that are administratively configured.
+    ///
+    /// "Admin" is short for "administratively"; these scopes have boundaries
+    /// configured by network administrators, unlike well-known scopes like
+    /// link-local or global.
+    ///
     /// For IPv6, this includes scopes 4, 5, and 8 (admin-local, site-local,
     /// organization-local) as defined in [RFC 7346] and [RFC 4291].
     ///
@@ -1329,7 +1344,7 @@ mod tests {
         assert!(v6_admin_local_mcast.is_admin_scoped_multicast());
         assert!(v6_site_local_mcast.is_admin_scoped_multicast());
         assert!(v6_org_local_mcast.is_admin_scoped_multicast());
-        assert!(!v6_link_local_mcast.is_admin_scoped_multicast()); // scope 2 is not admin-configured
+        assert!(!v6_link_local_mcast.is_admin_scoped_multicast()); // scope 2 is not administratively configured
         assert!(!v6_not_mcast.is_admin_scoped_multicast());
 
         // Test IPv4 admin scoped (239.0.0.0/8)
