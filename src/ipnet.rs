@@ -3,10 +3,13 @@
 use std::{
     net::{AddrParseError, IpAddr, Ipv4Addr, Ipv6Addr},
     num::ParseIntError,
+    time::{SystemTime, SystemTimeError},
 };
 
+use rand::Rng;
+
 /// A prefix error during the creation of an [IpNet], [Ipv4Net], or [Ipv6Net]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct IpNetPrefixError(u8);
 
 impl std::fmt::Display for IpNetPrefixError {
@@ -391,8 +394,12 @@ impl Ipv4Net {
     }
 
     pub(crate) fn mask(&self) -> u32 {
+        Self::mask_for_width(self.width)
+    }
+
+    pub(crate) fn mask_for_width(width: u8) -> u32 {
         u32::MAX
-            .checked_shl((IPV4_NET_WIDTH_MAX - self.width) as u32)
+            .checked_shl((IPV4_NET_WIDTH_MAX - width) as u32)
             .unwrap_or(0)
     }
 
@@ -581,6 +588,59 @@ impl Ipv4Net {
 
         child.is_subnet_of(parent)
     }
+
+    /// Resize this subnet.
+    ///
+    /// If the new width is less than the current width the underlying address
+    /// is truncated to the new width.
+    ///
+    /// If the new width is greater than the current width the underlying
+    /// address is extended with the `fill` bits. The `fill` value is shifted
+    /// so first byte of the fill is used for the first byte of the extended
+    /// subnet. After shifting, the fill is truncated to not extend beyond the
+    /// new width. The `fill` is applied as a logical or. If the source prefix
+    /// has non-zero values in host bits and `fill` is non-zero, the result
+    /// will be the logical or of the `fill` with the host bits.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// use oxnet::Ipv4Net;
+    /// let s16: Ipv4Net = "10.1.0.0/16".parse().unwrap();
+    /// // Extend to /24 by adding 0x02 in the third octet
+    /// let s24 = s16.resize(24, 2).unwrap();
+    /// assert_eq!(s24.to_string(), "10.1.2.0/24");
+    /// ```
+    ///
+    /// Non-zero values in host-bits:
+    /// ```
+    /// use oxnet::Ipv4Net;
+    /// let s16: Ipv4Net = "10.1.2.3/16".parse().unwrap();
+    /// let s24 = s16.resize(24, 0).unwrap();
+    /// assert_eq!(s24, "10.1.2.3/24".parse().unwrap());
+    /// let s24 = s16.resize(24, 255).unwrap();
+    /// assert_eq!(s24, "10.1.255.3/24".parse().unwrap());
+    /// ```
+    pub fn resize(&self, width: u8, fill: u32) -> Result<Self, IpNetPrefixError> {
+        if width > IPV4_NET_WIDTH_MAX {
+            return Err(IpNetPrefixError(width));
+        }
+        if width < self.width {
+            Ok(Self {
+                addr: Ipv4Addr::from(u32::from(self.addr) & Self::mask_for_width(width)),
+                width,
+            })
+        } else if width == self.width {
+            Ok(*self)
+        } else {
+            let fill = (fill << (IPV4_NET_WIDTH_MAX - width)) & Self::mask_for_width(width);
+            Ok(Self {
+                addr: Ipv4Addr::from(u32::from(self.addr) | fill),
+                width,
+            })
+        }
+    }
 }
 
 impl std::fmt::Display for Ipv4Net {
@@ -751,8 +811,12 @@ impl Ipv6Net {
     }
 
     pub(crate) fn mask(&self) -> u128 {
+        Self::mask_for_width(self.width)
+    }
+
+    pub(crate) fn mask_for_width(width: u8) -> u128 {
         u128::MAX
-            .checked_shl((IPV6_NET_WIDTH_MAX - self.width) as u32)
+            .checked_shl((IPV6_NET_WIDTH_MAX - width) as u32)
             .unwrap_or(0)
     }
 
@@ -929,6 +993,58 @@ impl Ipv6Net {
 
         child.is_subnet_of(parent)
     }
+
+    /// Resize this subnet.
+    ///
+    /// If the new width is less than the current width the underlying address
+    /// is truncated to the new width.
+    ///
+    /// If the new width is greater than the current width the underlying
+    /// address is extended with the `fill` bits. The `fill` value is shifted
+    /// so first byte of the fill is used for the first byte of the extended
+    /// subnet. After shifting, the fill is truncated to not extend beyond the
+    /// new width. The `fill` is applied as a logical or. If the source prefix
+    /// has non-zero values in host bits and `fill` is non-zero, the result
+    /// will be the logical or of the `fill` with the host bits.
+    ///
+    /// # Examples
+    /// Basic usage:
+    /// ```
+    /// use oxnet::Ipv6Net;
+    /// let s56: Ipv6Net = "fd00:a:b:cc00::/56".parse().unwrap();
+    /// // Extend a /56 to a /64
+    /// let s64 = s56.resize(64, 0xdd).unwrap();
+    /// assert_eq!(s64, "fd00:a:b:ccdd::/64".parse().unwrap());
+    /// ```
+    ///
+    /// Non-zero values in host-bits:
+    /// ```
+    /// use oxnet::Ipv6Net;
+    /// let s56: Ipv6Net = "fd00:a:b:ccdd::/56".parse().unwrap();
+    /// let s64 = s56.resize(64, 0).unwrap();
+    /// assert_eq!(s64, "fd00:a:b:ccdd::/64".parse().unwrap());
+    /// let s64 = s56.resize(64, 0xff).unwrap();
+    /// assert_eq!(s64, "fd00:a:b:ccff::/64".parse().unwrap());
+    /// ```
+    pub fn resize(&self, width: u8, fill: u128) -> Result<Self, IpNetPrefixError> {
+        if width > IPV6_NET_WIDTH_MAX {
+            return Err(IpNetPrefixError(width));
+        }
+        if width < self.width {
+            Ok(Self {
+                addr: Ipv6Addr::from(u128::from(self.addr) & Self::mask_for_width(width)),
+                width,
+            })
+        } else if width == self.width {
+            Ok(*self)
+        } else {
+            let fill = (fill << (IPV6_NET_WIDTH_MAX - width)) & Self::mask_for_width(width);
+            Ok(Self {
+                addr: Ipv6Addr::from(u128::from(self.addr) | fill),
+                width,
+            })
+        }
+    }
 }
 
 impl std::fmt::Display for Ipv6Net {
@@ -1071,6 +1187,119 @@ impl Iterator for Ipv6NetIter {
         self.next = (nth <= self.last).then_some(nth);
         self.next()
     }
+}
+
+/// Error conditions that can arise when building a ULA.
+#[derive(Debug, Clone)]
+pub enum UlaBuildError {
+    /// An error occured using a user specified time to build a ULA.
+    Time(SystemTimeError),
+    /// An error occured constructing the built prefix.
+    Prefix(IpNetPrefixError),
+}
+
+impl std::fmt::Display for UlaBuildError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Time(e) => write!(f, "invalid time provided: {e}"),
+            Self::Prefix(e) => write!(f, "unable to construct ULA prefix: {e}"),
+        }
+    }
+}
+
+impl std::error::Error for UlaBuildError {}
+
+impl From<SystemTimeError> for UlaBuildError {
+    fn from(value: SystemTimeError) -> Self {
+        Self::Time(value)
+    }
+}
+
+impl From<IpNetPrefixError> for UlaBuildError {
+    fn from(value: IpNetPrefixError) -> Self {
+        Self::Prefix(value)
+    }
+}
+
+/// Build an IPv6 unique local address that conforms to RFC 4193.
+#[derive(Default)]
+pub struct UlaBuilder {
+    date: Option<SystemTime>,
+    id: Option<Vec<u8>>,
+}
+
+impl UlaBuilder {
+    /// Set the ULA id.
+    pub fn id(&mut self, id: impl AsRef<[u8]>) -> &mut Self {
+        self.id = Some(id.as_ref().to_vec());
+        self
+    }
+
+    /// Set the ULA generation date.
+    pub fn date(&mut self, date: SystemTime) -> &mut Self {
+        self.date = Some(date);
+        self
+    }
+
+    /// Produce the Ipv6Net from the builder.
+    ///
+    /// This will produce a /48 with `fd` as the leading 8 bits followed by 40
+    /// random bits that are determined according to the algorithm in RFC 4193
+    /// section 3.2.2. Subsequent modification such as resizing to a /56 or /64
+    /// can be accomplished with `[Ipv6Net::resize]`.
+    pub fn build(&self) -> Result<Ipv6Net, UlaBuildError> {
+        use sha1::{Digest, Sha1};
+        use std::time::SystemTime;
+
+        // Get or generate ID (8 bytes)
+        let id: Vec<u8> = self.id.clone().unwrap_or_else(|| {
+            let mut rng = rand::rng();
+            rng.random::<[u8; 8]>().to_vec()
+        });
+
+        // Get time and convert to NTP format
+        let time = self.date.unwrap_or_else(SystemTime::now);
+        let ntp_time = system_time_to_ntp(time)?;
+
+        // Hash the inputs per RFC 4193
+        let mut hasher = Sha1::new();
+        hasher.update(ntp_time.to_be_bytes());
+        hasher.update(&id);
+        let hash = hasher.finalize();
+
+        // Extract 40 bits (5 bytes) for Global ID
+        let global_id = &hash[..5];
+
+        // Build the fd00::/48 prefix
+        // Format: fd + 40-bit Global ID + 16-bit Subnet ID (0 for /48)
+        let addr = Ipv6Addr::new(
+            0xfd00 | (global_id[0] as u16),
+            u16::from_be_bytes([global_id[1], global_id[2]]),
+            u16::from_be_bytes([global_id[3], global_id[4]]),
+            0,
+            0,
+            0,
+            0,
+            0,
+        );
+
+        Ok(Ipv6Net::new(addr, 48)?)
+    }
+}
+
+fn system_time_to_ntp(time: SystemTime) -> Result<u64, SystemTimeError> {
+    use std::time::UNIX_EPOCH;
+
+    // NTP epoch is 1900-01-01 00:00:00 UTC
+    // Unix epoch is 1970-01-01 00:00:00 UTC
+    // Difference is 70 years = 2208988800 seconds
+    const NTP_UNIX_OFFSET: u64 = 2208988800;
+
+    let duration = time.duration_since(UNIX_EPOCH)?;
+    let secs = duration.as_secs() + NTP_UNIX_OFFSET;
+    let frac = ((duration.subsec_nanos() as u64) << 32) / 1_000_000_000;
+
+    Ok((secs << 32) | frac)
 }
 
 #[cfg(feature = "ipnetwork")]
@@ -1426,5 +1655,83 @@ mod tests {
         assert!(SiteLocal.is_admin_scoped_multicast());
         assert!(OrganizationLocal.is_admin_scoped_multicast());
         assert!(!Global.is_admin_scoped_multicast());
+    }
+
+    #[test]
+    fn test_ipv6_ula_builder() {
+        // ULAs built without any parameters should result in a random /48 in
+        // fd::/8.
+        let ula1 = UlaBuilder::default().build().unwrap();
+        let ula2 = UlaBuilder::default().build().unwrap();
+        assert_eq!(ula1.width(), 48);
+        assert_ne!(ula1, ula2);
+
+        // If the id is not specified, it will be random, so these
+        // should still not match.
+        let t = SystemTime::now();
+        let ula1 = UlaBuilder::default().date(t).build().unwrap();
+        let ula2 = UlaBuilder::default().date(t).build().unwrap();
+        assert_ne!(ula1, ula2);
+
+        // Builders where the date and ID are specified should be
+        // deterministic.
+        let ula1 = UlaBuilder::default()
+            .date(t)
+            .id(vec![1, 2, 3, 4])
+            .build()
+            .unwrap();
+        let ula2 = UlaBuilder::default()
+            .date(t)
+            .id(vec![1, 2, 3, 4])
+            .build()
+            .unwrap();
+        assert_eq!(ula1, ula2);
+    }
+
+    #[test]
+    fn test_ipv6_resize() {
+        let s56: Ipv6Net = "fd00:a:b:cc00::/56".parse().unwrap();
+
+        // Extend a /56 to a /64
+        let s64 = s56.resize(64, 0xdd).unwrap();
+        assert_eq!(s64, "fd00:a:b:ccdd::/64".parse().unwrap());
+
+        // Truncate a /56 to a /48
+        let s48 = s56.resize(48, 0).unwrap();
+        assert_eq!(s48, "fd00:a:b::/48".parse().unwrap());
+
+        // Extending to a /200 should be an error
+        assert_eq!(s56.resize(200, 0), Result::Err(IpNetPrefixError(200)));
+
+        // Operating on non-cannonical form
+        let s56: Ipv6Net = "fd00:a:b:ccdd::/56".parse().unwrap();
+        let s64 = s56.resize(64, 0).unwrap();
+        assert_eq!(s64, "fd00:a:b:ccdd::/64".parse().unwrap());
+        let s64 = s56.resize(64, 0xff).unwrap();
+        assert_eq!(s64, "fd00:a:b:ccff::/64".parse().unwrap());
+    }
+
+    #[test]
+    fn test_ipv4_resize() {
+        let s16: Ipv4Net = "10.1.0.0/16".parse().unwrap();
+
+        // Extend a /16 to a /24
+        let s24 = s16.resize(24, 2).unwrap();
+        assert_eq!(s24, "10.1.2.0/24".parse().unwrap());
+
+        // Truncate a /16 to a /8
+        let s8 = s24.resize(8, 0).unwrap();
+        assert_eq!(s8, "10.0.0.0/8".parse().unwrap());
+
+        // Extending to a /40 should be an error
+        assert_eq!(s16.resize(40, 0), Result::Err(IpNetPrefixError(40)));
+
+        // Operating on non-cannonical form
+        let s16: Ipv4Net = "10.1.2.3/16".parse().unwrap();
+        // Extend a /16 to a /24
+        let s24 = s16.resize(24, 0).unwrap();
+        assert_eq!(s24, "10.1.2.3/24".parse().unwrap());
+        let s24 = s16.resize(24, 255).unwrap();
+        assert_eq!(s24, "10.1.255.3/24".parse().unwrap());
     }
 }

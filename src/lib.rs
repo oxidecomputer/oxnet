@@ -10,7 +10,7 @@ mod multicast;
 mod schema_util;
 
 pub use ipnet::{
-    IpNet, IpNetParseError, IpNetPrefixError, Ipv4Net, Ipv6Net, IPV4_NET_WIDTH_MAX,
-    IPV6_NET_WIDTH_MAX,
+    IpNet, IpNetParseError, IpNetPrefixError, Ipv4Net, Ipv6Net, UlaBuildError, UlaBuilder,
+    IPV4_NET_WIDTH_MAX, IPV6_NET_WIDTH_MAX,
 };
 pub use multicast::MulticastMac;
