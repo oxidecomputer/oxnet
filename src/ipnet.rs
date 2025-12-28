@@ -1396,8 +1396,7 @@ mod tests {
                 let net = format!("{case}/{prefix}");
                 assert!(
                     re.find(&net).is_some(),
-                    "Expected to match IPv6 case: {}",
-                    prefix,
+                    "Expected to match IPv6 case: {prefix}",
                 );
             }
         }
@@ -1415,7 +1414,7 @@ mod tests {
         let net: IpNet = net_str.parse().unwrap();
         let ser = serde_json::to_string(&net).unwrap();
 
-        assert_eq!(format!(r#""{}""#, net_str), ser);
+        assert_eq!(format!(r#""{net_str}""#), ser);
         let net_des = serde_json::from_str::<IpNet>(&ser).unwrap();
         assert_eq!(net, net_des);
 
@@ -1423,7 +1422,7 @@ mod tests {
         let net: IpNet = net_str.parse().unwrap();
         let ser = serde_json::to_string(&net).unwrap();
 
-        assert_eq!(format!(r#""{}""#, net_str), ser);
+        assert_eq!(format!(r#""{net_str}""#), ser);
         let net_des = serde_json::from_str::<IpNet>(&ser).unwrap();
         assert_eq!(net, net_des);
 
@@ -1431,7 +1430,7 @@ mod tests {
         let net: IpNet = net_str.parse().unwrap();
         let ser = serde_json::to_string(&net).unwrap();
 
-        assert_eq!(format!(r#""{}""#, net_str), ser);
+        assert_eq!(format!(r#""{net_str}""#), ser);
         let net_des = serde_json::from_str::<IpNet>(&ser).unwrap();
         assert_eq!(net, net_des);
 
@@ -1439,7 +1438,7 @@ mod tests {
         let net: IpNet = net_str.parse().unwrap();
         let ser = serde_json::to_string(&net).unwrap();
 
-        assert_eq!(format!(r#""{}""#, net_str), ser);
+        assert_eq!(format!(r#""{net_str}""#), ser);
         let net_des = serde_json::from_str::<IpNet>(&ser).unwrap();
         assert_eq!(net, net_des);
     }
