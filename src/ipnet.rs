@@ -3,10 +3,13 @@
 use std::{
     net::{AddrParseError, IpAddr, Ipv4Addr, Ipv6Addr},
     num::ParseIntError,
-    time::{SystemTime, SystemTimeError},
 };
 
-use rand::Rng;
+#[cfg(feature = "ula")]
+use {
+    rand::Rng,
+    std::time::{SystemTime, SystemTimeError},
+};
 
 /// A prefix error during the creation of an [IpNet], [Ipv4Net], or [Ipv6Net]
 #[derive(Debug, Clone, PartialEq)]
@@ -606,7 +609,7 @@ impl Ipv4Net {
     ///
     /// Basic usage:
     /// ```
-    /// use oxnet::Ipv4Net;
+    /// # use oxnet::Ipv4Net;
     /// let s16: Ipv4Net = "10.1.0.0/16".parse().unwrap();
     /// // Extend to /24 by adding 0x02 in the third octet
     /// let s24 = s16.resize(24, 2).unwrap();
@@ -615,7 +618,7 @@ impl Ipv4Net {
     ///
     /// Non-zero values in host-bits:
     /// ```
-    /// use oxnet::Ipv4Net;
+    /// # use oxnet::Ipv4Net;
     /// let s16: Ipv4Net = "10.1.2.3/16".parse().unwrap();
     /// let s24 = s16.resize(24, 0).unwrap();
     /// assert_eq!(s24, "10.1.2.3/24".parse().unwrap());
@@ -1010,7 +1013,7 @@ impl Ipv6Net {
     /// # Examples
     /// Basic usage:
     /// ```
-    /// use oxnet::Ipv6Net;
+    /// # use oxnet::Ipv6Net;
     /// let s56: Ipv6Net = "fd00:a:b:cc00::/56".parse().unwrap();
     /// // Extend a /56 to a /64
     /// let s64 = s56.resize(64, 0xdd).unwrap();
@@ -1019,7 +1022,7 @@ impl Ipv6Net {
     ///
     /// Non-zero values in host-bits:
     /// ```
-    /// use oxnet::Ipv6Net;
+    /// # use oxnet::Ipv6Net;
     /// let s56: Ipv6Net = "fd00:a:b:ccdd::/56".parse().unwrap();
     /// let s64 = s56.resize(64, 0).unwrap();
     /// assert_eq!(s64, "fd00:a:b:ccdd::/64".parse().unwrap());
@@ -1189,15 +1192,17 @@ impl Iterator for Ipv6NetIter {
     }
 }
 
-/// Error conditions that can arise when building a ULA.
+/// Error conditions that can arise from [UlaBuilder::build]
+#[cfg(feature = "ula")]
 #[derive(Debug, Clone)]
 pub enum UlaBuildError {
-    /// An error occured using a user specified time to build a ULA.
+    /// An error occurred using a user specified time to build a ULA
     Time(SystemTimeError),
-    /// An error occured constructing the built prefix.
+    /// An error occurred constructing the built prefix
     Prefix(IpNetPrefixError),
 }
 
+#[cfg(feature = "ula")]
 impl std::fmt::Display for UlaBuildError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -1207,14 +1212,17 @@ impl std::fmt::Display for UlaBuildError {
     }
 }
 
+#[cfg(feature = "ula")]
 impl std::error::Error for UlaBuildError {}
 
+#[cfg(feature = "ula")]
 impl From<SystemTimeError> for UlaBuildError {
     fn from(value: SystemTimeError) -> Self {
         Self::Time(value)
     }
 }
 
+#[cfg(feature = "ula")]
 impl From<IpNetPrefixError> for UlaBuildError {
     fn from(value: IpNetPrefixError) -> Self {
         Self::Prefix(value)
@@ -1222,12 +1230,14 @@ impl From<IpNetPrefixError> for UlaBuildError {
 }
 
 /// Build an IPv6 unique local address that conforms to RFC 4193.
+#[cfg(feature = "ula")]
 #[derive(Default)]
 pub struct UlaBuilder {
     date: Option<SystemTime>,
     id: Option<Vec<u8>>,
 }
 
+#[cfg(feature = "ula")]
 impl UlaBuilder {
     /// Set the ULA id.
     pub fn id(&mut self, id: impl AsRef<[u8]>) -> &mut Self {
@@ -1287,6 +1297,7 @@ impl UlaBuilder {
     }
 }
 
+#[cfg(feature = "ula")]
 fn system_time_to_ntp(time: SystemTime) -> Result<u64, SystemTimeError> {
     use std::time::UNIX_EPOCH;
 
@@ -1657,6 +1668,7 @@ mod tests {
         assert!(!Global.is_admin_scoped_multicast());
     }
 
+    #[cfg(feature = "ula")]
     #[test]
     fn test_ipv6_ula_builder() {
         // ULAs built without any parameters should result in a random /48 in
