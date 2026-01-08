@@ -13,4 +13,8 @@ pub use ipnet::{
     IpNet, IpNetParseError, IpNetPrefixError, Ipv4Net, Ipv6Net, IPV4_NET_WIDTH_MAX,
     IPV6_NET_WIDTH_MAX,
 };
+
+#[cfg(feature = "ula")]
+pub use ipnet::{UlaBuildError, UlaBuilder};
+
 pub use multicast::MulticastMac;
