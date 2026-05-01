@@ -2,6 +2,11 @@
 
 ## Next
 
+## [0.1.5] - 2026-05-01
+
+* Adds an IPv6 ULA (Unique Local Address) builder pre RFC 4193
+* Adds a resize function to `Ipv4Net` and `Ipv6Net` (to extend or truncate)
+
 ## [0.1.4] - 2025-11-20
 
 * Bumps Rust min-version to 1.85
@@ -36,6 +41,8 @@
 
 Initial release.
 
+[0.1.5]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.5
+[0.1.4]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.4
 [0.1.3]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.3
 [0.1.2]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.2
 [0.1.1]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.1
