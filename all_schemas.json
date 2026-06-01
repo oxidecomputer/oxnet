@@ -1,7 +1,39 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Null",
-  "type": "null",
+  "title": "Root",
+  "description": "Object to validate types with inlined schemas.",
+  "type": "object",
+  "required": [
+    "addr",
+    "addr_v4",
+    "addr_v6"
+  ],
+  "properties": {
+    "addr": {
+      "type": "string",
+      "x-rust-type": {
+        "crate": "std",
+        "path": "std::net::SocketAddr",
+        "version": ">=1.0.0"
+      }
+    },
+    "addr_v4": {
+      "type": "string",
+      "x-rust-type": {
+        "crate": "std",
+        "path": "std::net::SocketAddrV4",
+        "version": ">=1.0.0"
+      }
+    },
+    "addr_v6": {
+      "type": "string",
+      "x-rust-type": {
+        "crate": "std",
+        "path": "std::net::SocketAddrV6",
+        "version": ">=1.0.0"
+      }
+    }
+  },
   "definitions": {
     "IpNet": {
       "oneOf": [

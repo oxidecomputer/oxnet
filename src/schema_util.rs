@@ -78,7 +78,16 @@ mod tests {
         let _ = gen.subschema_for::<Ipv4Net>();
         let _ = gen.subschema_for::<Ipv6Net>();
 
-        let root = gen.into_root_schema_for::<()>();
+        /// Object to validate types with inlined schemas.
+        #[derive(schemars::JsonSchema)]
+        #[allow(dead_code)]
+        struct Root {
+            addr: SocketAddrJson,
+            addr_v4: SocketAddrV4Json,
+            addr_v6: SocketAddrV6Json,
+        }
+
+        let root = gen.into_root_schema_for::<Root>();
 
         expectorate::assert_contents(
             "all_schemas.json",
