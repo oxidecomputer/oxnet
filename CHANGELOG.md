@@ -2,6 +2,10 @@
 
 ## Next
 
+## [0.1.6] - 2026-06-01
+
+* Adds `SocketAddr`{,`V4`,`V6`} wrappers with the `x-rust-type` extension
+
 ## [0.1.5] - 2026-05-01
 
 * Adds an IPv6 ULA (Unique Local Address) builder pre RFC 4193
@@ -41,6 +45,7 @@
 
 Initial release.
 
+[0.1.6]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.6
 [0.1.5]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.5
 [0.1.4]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.4
 [0.1.3]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.3

@@ -1371,6 +1371,7 @@ mod ipnetwork_feature {
 mod tests {
     use super::*;
 
+    #[cfg(feature = "schemars")]
     #[test]
     fn test_ipv6_regex() {
         let re = regress::Regex::new(IPV6_NET_REGEX).unwrap();
@@ -1408,6 +1409,7 @@ mod tests {
         assert_eq!(x, IpNet::V4("0.0.0.0/0".parse().unwrap()));
     }
 
+    #[cfg(feature = "schemars")]
     #[test]
     fn test_ipnet_serde() {
         let net_str = "fd00:2::/32";
@@ -1714,7 +1716,7 @@ mod tests {
         // Extending to a /200 should be an error
         assert_eq!(s56.resize(200, 0), Result::Err(IpNetPrefixError(200)));
 
-        // Operating on non-cannonical form
+        // Operating on non-canonical form
         let s56: Ipv6Net = "fd00:a:b:ccdd::/56".parse().unwrap();
         let s64 = s56.resize(64, 0).unwrap();
         assert_eq!(s64, "fd00:a:b:ccdd::/64".parse().unwrap());
@@ -1737,7 +1739,7 @@ mod tests {
         // Extending to a /40 should be an error
         assert_eq!(s16.resize(40, 0), Result::Err(IpNetPrefixError(40)));
 
-        // Operating on non-cannonical form
+        // Operating on non-canonical form
         let s16: Ipv4Net = "10.1.2.3/16".parse().unwrap();
         // Extend a /16 to a /24
         let s24 = s16.resize(24, 0).unwrap();

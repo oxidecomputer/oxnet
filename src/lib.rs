@@ -1,4 +1,4 @@
-// Copyright 2024 Oxide Computer Company
+// Copyright 2026 Oxide Computer Company
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
@@ -8,6 +8,7 @@ mod ipnet;
 mod multicast;
 #[cfg(feature = "schemars")]
 mod schema_util;
+mod sockaddr;
 
 pub use ipnet::{
     IpNet, IpNetParseError, IpNetPrefixError, Ipv4Net, Ipv6Net, IPV4_NET_WIDTH_MAX,
@@ -18,3 +19,5 @@ pub use ipnet::{
 pub use ipnet::{UlaBuildError, UlaBuilder};
 
 pub use multicast::MulticastMac;
+
+pub use sockaddr::{SocketAddrJson, SocketAddrV4Json, SocketAddrV6Json};
