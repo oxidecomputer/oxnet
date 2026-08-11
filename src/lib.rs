@@ -4,6 +4,7 @@
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 
+mod ipaddr;
 mod ipnet;
 mod multicast;
 #[cfg(feature = "schemars")]
@@ -13,6 +14,11 @@ mod sockaddr;
 pub use ipnet::{
     IpNet, IpNetParseError, IpNetPrefixError, Ipv4Net, Ipv6Net, IPV4_NET_WIDTH_MAX,
     IPV6_NET_WIDTH_MAX,
+};
+
+pub use ipaddr::{
+    UnicastLinkLocalIpAddr, UnicastLinkLocalIpAddrError, UnicastLinkLocalIpAddrParseError,
+    UnicastLinkLocalIpv4Addr, UnicastLinkLocalIpv6Addr,
 };
 
 #[cfg(feature = "ula")]
