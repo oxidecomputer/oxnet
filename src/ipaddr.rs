@@ -24,8 +24,8 @@ impl std::fmt::Display for UnicastLinkLocalIpAddrParseError {
 impl std::error::Error for UnicastLinkLocalIpAddrParseError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::InvalidAddr(error) => Some(error),
-            Self::NotUnicastLinkLocal(error) => Some(error),
+            Self::InvalidAddr(error) => std::error::Error::source(error),
+            Self::NotUnicastLinkLocal(error) => std::error::Error::source(error),
         }
     }
 }
@@ -33,14 +33,10 @@ impl std::error::Error for UnicastLinkLocalIpAddrParseError {
 /// An error during the creation of a [UnicastLinkLocalIpAddr],
 /// [UnicastLinkLocalIpv4Addr] or [UnicastLinkLocalIpv6Addr].
 #[derive(Copy, Debug, Clone, PartialEq)]
-pub struct UnicastLinkLocalIpAddrError(IpAddr);
-
-impl UnicastLinkLocalIpAddrError {
-    /// Returns the address that failed validation.
-    pub fn addr(&self) -> IpAddr {
-        self.0
-    }
-}
+pub struct UnicastLinkLocalIpAddrError(
+    /// The address that failed validation.
+    pub IpAddr,
+);
 
 impl std::fmt::Display for UnicastLinkLocalIpAddrError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -63,8 +59,8 @@ impl UnicastLinkLocalIpAddr {
     /// Create a new [UnicastLinkLocalIpAddr] from an [IpAddr].
     pub fn new(addr: IpAddr) -> Result<Self, UnicastLinkLocalIpAddrError> {
         match addr {
-            IpAddr::V4(ip4) => UnicastLinkLocalIpv4Addr::try_from(ip4).map(Self::V4),
-            IpAddr::V6(ip6) => UnicastLinkLocalIpv6Addr::try_from(ip6).map(Self::V6),
+            IpAddr::V4(ip4) => UnicastLinkLocalIpv4Addr::new(ip4).map(Self::V4),
+            IpAddr::V6(ip6) => UnicastLinkLocalIpv6Addr::new(ip6).map(Self::V6),
         }
     }
 
@@ -120,8 +116,8 @@ impl TryFrom<Ipv6Addr> for UnicastLinkLocalIpAddr {
 impl From<UnicastLinkLocalIpAddr> for IpAddr {
     fn from(value: UnicastLinkLocalIpAddr) -> Self {
         match value {
-            UnicastLinkLocalIpAddr::V4(ip4) => IpAddr::V4(ip4.to_addr()),
-            UnicastLinkLocalIpAddr::V6(ip6) => IpAddr::V6(ip6.to_addr()),
+            UnicastLinkLocalIpAddr::V4(ip4) => IpAddr::V4(ip4.into_addr()),
+            UnicastLinkLocalIpAddr::V6(ip6) => IpAddr::V6(ip6.into_addr()),
         }
     }
 }
@@ -152,9 +148,8 @@ impl<'de> serde::Deserialize<'de> for UnicastLinkLocalIpAddr {
     where
         D: serde::Deserializer<'de>,
     {
-        <String as serde::Deserialize>::deserialize(deserializer)?
-            .parse()
-            .map_err(serde::de::Error::custom)
+        let addr = <IpAddr as serde::Deserialize>::deserialize(deserializer)?;
+        Self::new(addr).map_err(serde::de::Error::custom)
     }
 }
 
@@ -164,7 +159,7 @@ impl serde::Serialize for UnicastLinkLocalIpAddr {
     where
         S: serde::Serializer,
     {
-        serializer.collect_str(self)
+        serde::Serialize::serialize(&IpAddr::from(*self), serializer)
     }
 }
 
@@ -200,67 +195,17 @@ impl schemars::JsonSchema for UnicastLinkLocalIpAddr {
 pub struct UnicastLinkLocalIpv4Addr(Ipv4Addr);
 
 impl UnicastLinkLocalIpv4Addr {
-    /// Create a [UnicastLinkLocalIpv4Addr] from four 8-bit octets.
-    pub fn new(a: u8, b: u8, c: u8, d: u8) -> Result<Self, UnicastLinkLocalIpAddrError> {
-        let new = Ipv4Addr::new(a, b, c, d);
-        Self::from_addr(new)
-    }
-
-    /// Returns the four element byte array that make up this address.
-    pub fn octets(&self) -> [u8; 4] {
-        self.0.octets()
-    }
-
-    /// Create a [UnicastLinkLocalIpv4Addr] from a four element byte array.
-    pub fn from_octets(octets: [u8; 4]) -> Result<Self, UnicastLinkLocalIpAddrError> {
-        let new = Ipv4Addr::from(octets);
-        Self::from_addr(new)
-    }
-
-    /// Converts this address into a [u32] in native byte order.
-    pub fn to_bits(self) -> u32 {
-        self.0.to_bits()
-    }
-
-    /// Create a [UnicastLinkLocalIpv4Addr] from a native byte order [u32].
-    pub fn from_bits(bits: u32) -> Result<Self, UnicastLinkLocalIpAddrError> {
-        let new = Ipv4Addr::from_bits(bits);
-        Self::from_addr(new)
-    }
-
-    /// Converts this address into the underlying [Ipv4Addr].
-    pub fn to_addr(self) -> Ipv4Addr {
-        self.0
-    }
-
     /// Create a [UnicastLinkLocalIpv4Addr] from an [Ipv4Addr].
-    pub fn from_addr(addr: Ipv4Addr) -> Result<Self, UnicastLinkLocalIpAddrError> {
+    pub fn new(addr: Ipv4Addr) -> Result<Self, UnicastLinkLocalIpAddrError> {
         if addr.is_link_local() {
             return Ok(Self(addr));
         }
         Err(UnicastLinkLocalIpAddrError(addr.into()))
     }
-}
 
-impl From<UnicastLinkLocalIpv4Addr> for u32 {
-    fn from(value: UnicastLinkLocalIpv4Addr) -> Self {
-        value.to_bits()
-    }
-}
-
-impl TryFrom<u32> for UnicastLinkLocalIpv4Addr {
-    type Error = UnicastLinkLocalIpAddrError;
-
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
-        Self::from_bits(value)
-    }
-}
-
-impl TryFrom<[u8; 4]> for UnicastLinkLocalIpv4Addr {
-    type Error = UnicastLinkLocalIpAddrError;
-
-    fn try_from(value: [u8; 4]) -> Result<Self, Self::Error> {
-        Self::from_octets(value)
+    /// Converts this address into the underlying [Ipv4Addr].
+    pub fn into_addr(self) -> Ipv4Addr {
+        self.0
     }
 }
 
@@ -268,19 +213,27 @@ impl TryFrom<Ipv4Addr> for UnicastLinkLocalIpv4Addr {
     type Error = UnicastLinkLocalIpAddrError;
 
     fn try_from(value: Ipv4Addr) -> Result<Self, Self::Error> {
-        Self::from_addr(value)
+        Self::new(value)
     }
 }
 
 impl From<UnicastLinkLocalIpv4Addr> for Ipv4Addr {
     fn from(value: UnicastLinkLocalIpv4Addr) -> Self {
-        value.to_addr()
+        value.into_addr()
     }
 }
 
 impl From<UnicastLinkLocalIpv4Addr> for IpAddr {
     fn from(value: UnicastLinkLocalIpv4Addr) -> Self {
-        IpAddr::V4(value.to_addr())
+        IpAddr::V4(value.into_addr())
+    }
+}
+
+impl std::ops::Deref for UnicastLinkLocalIpv4Addr {
+    type Target = Ipv4Addr;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -297,7 +250,7 @@ impl std::str::FromStr for UnicastLinkLocalIpv4Addr {
         let addr: Ipv4Addr = s
             .parse()
             .map_err(UnicastLinkLocalIpAddrParseError::InvalidAddr)?;
-        Self::try_from(addr).map_err(UnicastLinkLocalIpAddrParseError::NotUnicastLinkLocal)
+        Self::new(addr).map_err(UnicastLinkLocalIpAddrParseError::NotUnicastLinkLocal)
     }
 }
 
@@ -307,9 +260,8 @@ impl<'de> serde::Deserialize<'de> for UnicastLinkLocalIpv4Addr {
     where
         D: serde::Deserializer<'de>,
     {
-        <String as serde::Deserialize>::deserialize(deserializer)?
-            .parse()
-            .map_err(serde::de::Error::custom)
+        let addr = <Ipv4Addr as serde::Deserialize>::deserialize(deserializer)?;
+        Self::new(addr).map_err(serde::de::Error::custom)
     }
 }
 
@@ -319,7 +271,7 @@ impl serde::Serialize for UnicastLinkLocalIpv4Addr {
     where
         S: serde::Serializer,
     {
-        serializer.collect_str(self)
+        serde::Serialize::serialize(&self.0, serializer)
     }
 }
 
@@ -360,57 +312,8 @@ impl schemars::JsonSchema for UnicastLinkLocalIpv4Addr {
 pub struct UnicastLinkLocalIpv6Addr(Ipv6Addr);
 
 impl UnicastLinkLocalIpv6Addr {
-    /// Create a [UnicastLinkLocalIpv6Addr] from eight 16-bit segments.
-    #[expect(clippy::too_many_arguments, reason = "mirrors std::net::Ipv6Addr::new")]
-    pub fn new(
-        a: u16,
-        b: u16,
-        c: u16,
-        d: u16,
-        e: u16,
-        f: u16,
-        g: u16,
-        h: u16,
-    ) -> Result<Self, UnicastLinkLocalIpAddrError> {
-        let new = Ipv6Addr::new(a, b, c, d, e, f, g, h);
-        Self::from_addr(new)
-    }
-
-    /// Returns the 16-element byte array that makes up this address.
-    pub fn octets(&self) -> [u8; 16] {
-        self.0.octets()
-    }
-
-    /// Create a [UnicastLinkLocalIpv6Addr] from a 16-element byte array.
-    pub fn from_octets(octets: [u8; 16]) -> Result<Self, UnicastLinkLocalIpAddrError> {
-        let new = Ipv6Addr::from(octets);
-        Self::from_addr(new)
-    }
-
-    /// Converts this address into a `u128` in native byte order.
-    pub fn to_bits(self) -> u128 {
-        self.0.to_bits()
-    }
-
-    /// Create a [UnicastLinkLocalIpv6Addr] from a native byte order [u128].
-    pub fn from_bits(bits: u128) -> Result<Self, UnicastLinkLocalIpAddrError> {
-        let new = Ipv6Addr::from_bits(bits);
-        Self::from_addr(new)
-    }
-
-    /// Returns the eight 16-bit segments that make up this address.
-    pub fn segments(&self) -> [u16; 8] {
-        self.0.segments()
-    }
-
-    /// Create a [UnicastLinkLocalIpv6Addr] from an eight element 16-bit array.
-    pub fn from_segments(segments: [u16; 8]) -> Result<Self, UnicastLinkLocalIpAddrError> {
-        let new = Ipv6Addr::from(segments);
-        Self::from_addr(new)
-    }
-
     /// Create a [UnicastLinkLocalIpv6Addr] from an [Ipv6Addr].
-    pub fn from_addr(addr: Ipv6Addr) -> Result<Self, UnicastLinkLocalIpAddrError> {
+    pub fn new(addr: Ipv6Addr) -> Result<Self, UnicastLinkLocalIpAddrError> {
         if addr.is_unicast_link_local() {
             return Ok(Self(addr));
         }
@@ -418,38 +321,8 @@ impl UnicastLinkLocalIpv6Addr {
     }
 
     /// Converts this address into the underlying [Ipv6Addr].
-    pub fn to_addr(self) -> Ipv6Addr {
+    pub fn into_addr(self) -> Ipv6Addr {
         self.0
-    }
-}
-
-impl From<UnicastLinkLocalIpv6Addr> for u128 {
-    fn from(value: UnicastLinkLocalIpv6Addr) -> Self {
-        value.to_bits()
-    }
-}
-
-impl TryFrom<u128> for UnicastLinkLocalIpv6Addr {
-    type Error = UnicastLinkLocalIpAddrError;
-
-    fn try_from(value: u128) -> Result<Self, Self::Error> {
-        Self::from_bits(value)
-    }
-}
-
-impl TryFrom<[u8; 16]> for UnicastLinkLocalIpv6Addr {
-    type Error = UnicastLinkLocalIpAddrError;
-
-    fn try_from(value: [u8; 16]) -> Result<Self, Self::Error> {
-        Self::from_octets(value)
-    }
-}
-
-impl TryFrom<[u16; 8]> for UnicastLinkLocalIpv6Addr {
-    type Error = UnicastLinkLocalIpAddrError;
-
-    fn try_from(value: [u16; 8]) -> Result<Self, Self::Error> {
-        Self::from_segments(value)
     }
 }
 
@@ -457,19 +330,27 @@ impl TryFrom<Ipv6Addr> for UnicastLinkLocalIpv6Addr {
     type Error = UnicastLinkLocalIpAddrError;
 
     fn try_from(value: Ipv6Addr) -> Result<Self, Self::Error> {
-        Self::from_addr(value)
+        Self::new(value)
     }
 }
 
 impl From<UnicastLinkLocalIpv6Addr> for Ipv6Addr {
     fn from(value: UnicastLinkLocalIpv6Addr) -> Self {
-        value.to_addr()
+        value.into_addr()
     }
 }
 
 impl From<UnicastLinkLocalIpv6Addr> for IpAddr {
     fn from(value: UnicastLinkLocalIpv6Addr) -> Self {
-        IpAddr::V6(value.to_addr())
+        IpAddr::V6(value.into_addr())
+    }
+}
+
+impl std::ops::Deref for UnicastLinkLocalIpv6Addr {
+    type Target = Ipv6Addr;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -486,7 +367,7 @@ impl std::str::FromStr for UnicastLinkLocalIpv6Addr {
         let addr: Ipv6Addr = s
             .parse()
             .map_err(UnicastLinkLocalIpAddrParseError::InvalidAddr)?;
-        Self::try_from(addr).map_err(UnicastLinkLocalIpAddrParseError::NotUnicastLinkLocal)
+        Self::new(addr).map_err(UnicastLinkLocalIpAddrParseError::NotUnicastLinkLocal)
     }
 }
 
@@ -496,9 +377,8 @@ impl<'de> serde::Deserialize<'de> for UnicastLinkLocalIpv6Addr {
     where
         D: serde::Deserializer<'de>,
     {
-        <String as serde::Deserialize>::deserialize(deserializer)?
-            .parse()
-            .map_err(serde::de::Error::custom)
+        let addr = <Ipv6Addr as serde::Deserialize>::deserialize(deserializer)?;
+        Self::new(addr).map_err(serde::de::Error::custom)
     }
 }
 
@@ -508,7 +388,7 @@ impl serde::Serialize for UnicastLinkLocalIpv6Addr {
     where
         S: serde::Serializer,
     {
-        serializer.collect_str(self)
+        serde::Serialize::serialize(&self.0, serializer)
     }
 }
 
@@ -549,13 +429,13 @@ mod tests {
     #[test]
     fn from_str_parses_ipv4_link_local_address() {
         let addr: UnicastLinkLocalIpv4Addr = "169.254.1.2".parse().unwrap();
-        assert_eq!(addr.to_addr(), Ipv4Addr::new(169, 254, 1, 2));
+        assert_eq!(addr.into_addr(), Ipv4Addr::new(169, 254, 1, 2));
     }
 
     #[test]
     fn from_str_parses_ipv6_link_local_address() {
         let addr: UnicastLinkLocalIpv6Addr = "fe80::1".parse().unwrap();
-        assert_eq!(addr.to_addr(), "fe80::1".parse::<Ipv6Addr>().unwrap());
+        assert_eq!(addr.into_addr(), "fe80::1".parse::<Ipv6Addr>().unwrap());
     }
 
     #[test]
@@ -590,35 +470,28 @@ mod tests {
     }
 
     #[test]
+    fn parse_errors_transparently_report_the_inner_error() {
+        for (input, expected) in [
+            ("not-an-address", "invalid IP address syntax"),
+            ("192.0.2.1", "input is not unicast link-local: 192.0.2.1"),
+        ] {
+            let error = input.parse::<UnicastLinkLocalIpAddr>().unwrap_err();
+
+            assert_eq!(error.to_string(), expected);
+            assert!(std::error::Error::source(&error).is_none());
+        }
+    }
+
+    #[test]
     fn ipv4_constructors_accept_entire_link_local_range() {
         for octets in [[169, 254, 0, 0], [169, 254, 255, 255]] {
             let expected = Ipv4Addr::from(octets);
-            let validated = UnicastLinkLocalIpv4Addr::from_addr(expected).unwrap();
+            let validated = UnicastLinkLocalIpv4Addr::new(expected).unwrap();
             let generic = UnicastLinkLocalIpAddr::from(validated);
 
-            assert_eq!(validated.to_addr(), expected);
+            assert_eq!(validated.into_addr(), expected);
             assert_eq!(validated.octets(), octets);
             assert_eq!(validated.to_bits(), expected.to_bits());
-            assert_eq!(
-                UnicastLinkLocalIpv4Addr::new(octets[0], octets[1], octets[2], octets[3]).unwrap(),
-                validated
-            );
-            assert_eq!(
-                UnicastLinkLocalIpv4Addr::from_octets(octets).unwrap(),
-                validated
-            );
-            assert_eq!(
-                UnicastLinkLocalIpv4Addr::try_from(octets).unwrap(),
-                validated
-            );
-            assert_eq!(
-                UnicastLinkLocalIpv4Addr::from_bits(expected.to_bits()).unwrap(),
-                validated
-            );
-            assert_eq!(
-                UnicastLinkLocalIpv4Addr::try_from(expected.to_bits()).unwrap(),
-                validated
-            );
             assert_eq!(
                 UnicastLinkLocalIpAddr::new(expected.into()).unwrap(),
                 generic
@@ -641,13 +514,7 @@ mod tests {
             let addr = Ipv4Addr::from(octets);
             let expected = IpAddr::V4(addr);
             let errors = [
-                UnicastLinkLocalIpv4Addr::from_addr(addr).unwrap_err(),
-                UnicastLinkLocalIpv4Addr::new(octets[0], octets[1], octets[2], octets[3])
-                    .unwrap_err(),
-                UnicastLinkLocalIpv4Addr::from_octets(octets).unwrap_err(),
-                UnicastLinkLocalIpv4Addr::try_from(octets).unwrap_err(),
-                UnicastLinkLocalIpv4Addr::from_bits(addr.to_bits()).unwrap_err(),
-                UnicastLinkLocalIpv4Addr::try_from(addr.to_bits()).unwrap_err(),
+                UnicastLinkLocalIpv4Addr::new(addr).unwrap_err(),
                 UnicastLinkLocalIpv4Addr::try_from(addr).unwrap_err(),
                 UnicastLinkLocalIpAddr::new(expected).unwrap_err(),
                 UnicastLinkLocalIpAddr::try_from(addr).unwrap_err(),
@@ -655,7 +522,7 @@ mod tests {
             ];
 
             for error in errors {
-                assert_eq!(error.addr(), expected);
+                assert_eq!(error.0, expected);
             }
         }
     }
@@ -669,52 +536,13 @@ mod tests {
             ],
         ] {
             let expected = Ipv6Addr::from(segments);
-            let octets = expected.octets();
-            let validated = UnicastLinkLocalIpv6Addr::from_addr(expected).unwrap();
+            let validated = UnicastLinkLocalIpv6Addr::new(expected).unwrap();
             let generic = UnicastLinkLocalIpAddr::from(validated);
 
-            assert_eq!(validated.to_addr(), expected);
-            assert_eq!(validated.octets(), octets);
+            assert_eq!(validated.into_addr(), expected);
+            assert_eq!(validated.octets(), expected.octets());
             assert_eq!(validated.segments(), segments);
             assert_eq!(validated.to_bits(), expected.to_bits());
-            assert_eq!(
-                UnicastLinkLocalIpv6Addr::new(
-                    segments[0],
-                    segments[1],
-                    segments[2],
-                    segments[3],
-                    segments[4],
-                    segments[5],
-                    segments[6],
-                    segments[7]
-                )
-                .unwrap(),
-                validated
-            );
-            assert_eq!(
-                UnicastLinkLocalIpv6Addr::from_octets(octets).unwrap(),
-                validated
-            );
-            assert_eq!(
-                UnicastLinkLocalIpv6Addr::try_from(octets).unwrap(),
-                validated
-            );
-            assert_eq!(
-                UnicastLinkLocalIpv6Addr::from_segments(segments).unwrap(),
-                validated
-            );
-            assert_eq!(
-                UnicastLinkLocalIpv6Addr::try_from(segments).unwrap(),
-                validated
-            );
-            assert_eq!(
-                UnicastLinkLocalIpv6Addr::from_bits(expected.to_bits()).unwrap(),
-                validated
-            );
-            assert_eq!(
-                UnicastLinkLocalIpv6Addr::try_from(expected.to_bits()).unwrap(),
-                validated
-            );
             assert_eq!(
                 UnicastLinkLocalIpAddr::new(expected.into()).unwrap(),
                 generic
@@ -741,27 +569,9 @@ mod tests {
             [0xff02, 0, 0, 0, 0, 0, 0, 1],
         ] {
             let addr = Ipv6Addr::from(segments);
-            let octets = addr.octets();
             let expected = IpAddr::V6(addr);
             let errors = [
-                UnicastLinkLocalIpv6Addr::from_addr(addr).unwrap_err(),
-                UnicastLinkLocalIpv6Addr::new(
-                    segments[0],
-                    segments[1],
-                    segments[2],
-                    segments[3],
-                    segments[4],
-                    segments[5],
-                    segments[6],
-                    segments[7],
-                )
-                .unwrap_err(),
-                UnicastLinkLocalIpv6Addr::from_octets(octets).unwrap_err(),
-                UnicastLinkLocalIpv6Addr::try_from(octets).unwrap_err(),
-                UnicastLinkLocalIpv6Addr::from_segments(segments).unwrap_err(),
-                UnicastLinkLocalIpv6Addr::try_from(segments).unwrap_err(),
-                UnicastLinkLocalIpv6Addr::from_bits(addr.to_bits()).unwrap_err(),
-                UnicastLinkLocalIpv6Addr::try_from(addr.to_bits()).unwrap_err(),
+                UnicastLinkLocalIpv6Addr::new(addr).unwrap_err(),
                 UnicastLinkLocalIpv6Addr::try_from(addr).unwrap_err(),
                 UnicastLinkLocalIpAddr::new(expected).unwrap_err(),
                 UnicastLinkLocalIpAddr::try_from(addr).unwrap_err(),
@@ -769,7 +579,7 @@ mod tests {
             ];
 
             for error in errors {
-                assert_eq!(error.addr(), expected);
+                assert_eq!(error.0, expected);
             }
         }
     }
