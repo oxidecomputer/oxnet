@@ -1,6 +1,7 @@
 // Copyright 2025 Oxide Computer Company
 
 use std::{
+    cmp::Ordering,
     net::{AddrParseError, IpAddr, Ipv4Addr, Ipv6Addr},
     num::ParseIntError,
 };
@@ -629,19 +630,19 @@ impl Ipv4Net {
         if width > IPV4_NET_WIDTH_MAX {
             return Err(IpNetPrefixError(width));
         }
-        if width < self.width {
-            Ok(Self {
+        match width.cmp(&self.width) {
+            Ordering::Less => Ok(Self {
                 addr: Ipv4Addr::from(u32::from(self.addr) & Self::mask_for_width(width)),
                 width,
-            })
-        } else if width == self.width {
-            Ok(*self)
-        } else {
-            let fill = (fill << (IPV4_NET_WIDTH_MAX - width)) & Self::mask_for_width(width);
-            Ok(Self {
-                addr: Ipv4Addr::from(u32::from(self.addr) | fill),
-                width,
-            })
+            }),
+            Ordering::Equal => Ok(*self),
+            Ordering::Greater => {
+                let fill = (fill << (IPV4_NET_WIDTH_MAX - width)) & Self::mask_for_width(width);
+                Ok(Self {
+                    addr: Ipv4Addr::from(u32::from(self.addr) | fill),
+                    width,
+                })
+            }
         }
     }
 }
@@ -1033,19 +1034,19 @@ impl Ipv6Net {
         if width > IPV6_NET_WIDTH_MAX {
             return Err(IpNetPrefixError(width));
         }
-        if width < self.width {
-            Ok(Self {
+        match width.cmp(&self.width) {
+            Ordering::Less => Ok(Self {
                 addr: Ipv6Addr::from(u128::from(self.addr) & Self::mask_for_width(width)),
                 width,
-            })
-        } else if width == self.width {
-            Ok(*self)
-        } else {
-            let fill = (fill << (IPV6_NET_WIDTH_MAX - width)) & Self::mask_for_width(width);
-            Ok(Self {
-                addr: Ipv6Addr::from(u128::from(self.addr) | fill),
-                width,
-            })
+            }),
+            Ordering::Equal => Ok(*self),
+            Ordering::Greater => {
+                let fill = (fill << (IPV6_NET_WIDTH_MAX - width)) & Self::mask_for_width(width);
+                Ok(Self {
+                    addr: Ipv6Addr::from(u128::from(self.addr) | fill),
+                    width,
+                })
+            }
         }
     }
 }
@@ -1409,7 +1410,7 @@ mod tests {
         assert_eq!(x, IpNet::V4("0.0.0.0/0".parse().unwrap()));
     }
 
-    #[cfg(feature = "schemars")]
+    #[cfg(all(feature = "schemars", feature = "serde"))]
     #[test]
     fn test_ipnet_serde() {
         let net_str = "fd00:2::/32";

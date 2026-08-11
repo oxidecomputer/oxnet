@@ -84,13 +84,13 @@ impl From<SocketAddrV6> for SocketAddrJson {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "schemars")]
+    #[cfg(all(feature = "schemars", feature = "serde"))]
     #[test]
     fn test_sockaddr_serialization() {
         use super::*;
 
         let base: SocketAddrV4 = "0.0.0.0:0".parse().unwrap();
-        let wrap = SocketAddrV4Json::from(base.clone());
+        let wrap = SocketAddrV4Json::from(base);
 
         assert_eq!(
             serde_json::to_string(&wrap).unwrap(),
@@ -98,7 +98,7 @@ mod tests {
         );
 
         let base: SocketAddrV6 = "[::]:0".parse().unwrap();
-        let wrap = SocketAddrV6Json::from(base.clone());
+        let wrap = SocketAddrV6Json::from(base);
 
         assert_eq!(
             serde_json::to_string(&wrap).unwrap(),
@@ -106,7 +106,7 @@ mod tests {
         );
 
         let base: SocketAddr = "0.0.0.0:0".parse().unwrap();
-        let wrap = SocketAddrJson::from(base.clone());
+        let wrap = SocketAddrJson::from(base);
 
         assert_eq!(
             serde_json::to_string(&wrap).unwrap(),
