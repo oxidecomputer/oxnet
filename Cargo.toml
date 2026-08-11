@@ -16,7 +16,7 @@ default = ["serde", "schemars", "ipnetwork"]
 ipnetwork = ["dep:ipnetwork"]
 macaddr = ["dep:macaddr"]
 schemars = ["dep:schemars", "dep:serde_json"]
-serde = ["dep:serde"]
+serde = ["dep:serde", "serde/derive"]
 ula = ["dep:sha1", "dep:rand"]
 std = []
 

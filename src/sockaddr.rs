@@ -84,7 +84,7 @@ impl From<SocketAddrV6> for SocketAddrJson {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "schemars")]
+    #[cfg(all(feature = "schemars", feature = "serde"))]
     #[test]
     fn test_sockaddr_serialization() {
         use super::*;

@@ -1409,7 +1409,7 @@ mod tests {
         assert_eq!(x, IpNet::V4("0.0.0.0/0".parse().unwrap()));
     }
 
-    #[cfg(feature = "schemars")]
+    #[cfg(all(feature = "schemars", feature = "serde"))]
     #[test]
     fn test_ipnet_serde() {
         let net_str = "fd00:2::/32";
