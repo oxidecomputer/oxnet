@@ -16,13 +16,13 @@ default = ["serde", "schemars", "ipnetwork"]
 ipnetwork = ["dep:ipnetwork"]
 macaddr = ["dep:macaddr"]
 schemars = ["dep:schemars", "dep:serde_json"]
-serde = ["dep:serde", "serde/derive"]
+serde = ["dep:serde"]
 ula = ["dep:sha1", "dep:rand"]
 std = []
 
 [dependencies]
 schemars = {version = "0.8.22", optional = true }
-serde = { version = "1.0.228", optional = true }
+serde = { version = "1.0.228", optional = true, features = ["derive"] }
 serde_json = { version = "1.0.145", optional = true }
 ipnetwork = { version = "0.21.1", optional = true }
 macaddr = { version = "1.0.1", optional = true }
