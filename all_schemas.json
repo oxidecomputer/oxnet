@@ -87,6 +87,61 @@
         "path": "oxnet::Ipv6Net",
         "version": "0.1.0"
       }
+    },
+    "UnicastLinkLocalIpAddr": {
+      "oneOf": [
+        {
+          "title": "v4",
+          "allOf": [
+            {
+              "$ref": "#/definitions/UnicastLinkLocalIpv4Addr"
+            }
+          ]
+        },
+        {
+          "title": "v6",
+          "allOf": [
+            {
+              "$ref": "#/definitions/UnicastLinkLocalIpv6Addr"
+            }
+          ]
+        }
+      ],
+      "x-rust-type": {
+        "crate": "oxnet",
+        "path": "oxnet::UnicastLinkLocalIpAddr",
+        "version": "0.1.7"
+      }
+    },
+    "UnicastLinkLocalIpv4Addr": {
+      "title": "A unicast link-local IPv4 address",
+      "description": "An IPv4 address in 169.254.0.0/16",
+      "examples": [
+        "169.254.1.1"
+      ],
+      "type": "string",
+      "format": "ipv4",
+      "pattern": "^169\\.254\\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$",
+      "x-rust-type": {
+        "crate": "oxnet",
+        "path": "oxnet::UnicastLinkLocalIpv4Addr",
+        "version": "0.1.7"
+      }
+    },
+    "UnicastLinkLocalIpv6Addr": {
+      "title": "A unicast link-local IPv6 address",
+      "description": "An IPv6 address in fe80::/10",
+      "examples": [
+        "fe80::1"
+      ],
+      "type": "string",
+      "format": "ipv6",
+      "pattern": "^[fF][eE][89aAbB][0-9a-fA-F]:",
+      "x-rust-type": {
+        "crate": "oxnet",
+        "path": "oxnet::UnicastLinkLocalIpv6Addr",
+        "version": "0.1.7"
+      }
     }
   }
 }

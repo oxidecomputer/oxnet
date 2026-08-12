@@ -1257,7 +1257,7 @@ impl UlaBuilder {
     /// This will produce a /48 with `fd` as the leading 8 bits followed by 40
     /// random bits that are determined according to the algorithm in RFC 4193
     /// section 3.2.2. Subsequent modification such as resizing to a /56 or /64
-    /// can be accomplished with `[Ipv6Net::resize]`.
+    /// can be accomplished with [`Ipv6Net::resize`].
     pub fn build(&self) -> Result<Ipv6Net, UlaBuildError> {
         use sha1::{Digest, Sha1};
         use std::time::SystemTime;

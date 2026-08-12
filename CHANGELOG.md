@@ -2,6 +2,8 @@
 
 ## Next
 
+* Adds validated unicast link-local IPv4, IPv6, and dual-stack address types
+
 ## [0.1.6] - 2026-06-01
 
 * Adds `SocketAddr`{,`V4`,`V6`} wrappers with the `x-rust-type` extension
