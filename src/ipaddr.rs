@@ -64,14 +64,14 @@ impl UnicastLinkLocalIpAddr {
         }
     }
 
-    /// Returns [`true`] if this address is an [`IPv4` address], and [`false`]
-    /// otherwise.
+    /// Returns [`true`] if this address is an [`IPv4`](Self::V4) address, and
+    /// [`false`] otherwise.
     pub fn is_ipv4(&self) -> bool {
         matches!(self, Self::V4(_))
     }
 
-    /// Returns [`true`] if this address is an [`IPv6` address], and [`false`]
-    /// otherwise.
+    /// Returns [`true`] if this address is an [`IPv6`](Self::V6) address, and
+    /// [`false`] otherwise.
     pub fn is_ipv6(&self) -> bool {
         matches!(self, Self::V6(_))
     }
