@@ -3,6 +3,7 @@
 ## Next
 
 * Adds validated unicast link-local IPv4, IPv6, and dual-stack address types
+* Bumps Rust min-version to 1.88 (required by `regress` 0.11)
 
 ## [0.1.6] - 2026-06-01
 
