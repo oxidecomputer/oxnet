@@ -8,7 +8,7 @@ use std::{
 
 #[cfg(feature = "ula")]
 use {
-    rand::Rng,
+    rand::RngExt,
     std::time::{SystemTime, SystemTimeError},
 };
 
