@@ -6,6 +6,7 @@
 
 mod ipaddr;
 mod ipnet;
+mod md5;
 mod multicast;
 #[cfg(feature = "schemars")]
 mod schema_util;
@@ -23,6 +24,8 @@ pub use ipaddr::{
 
 #[cfg(feature = "ula")]
 pub use ipnet::{UlaBuildError, UlaBuilder};
+
+pub use md5::{Md5AuthString, Md5AuthStringError};
 
 pub use multicast::MulticastMac;
 
