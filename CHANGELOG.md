@@ -2,7 +2,10 @@
 
 ## Next
 
+## [0.1.7] - 2026-08-13
+
 * Adds validated unicast link-local IPv4, IPv6, and dual-stack address types
+* Bumps Rust min-version to 1.88 (required by `regress` 0.11)
 
 ## [0.1.6] - 2026-06-01
 
@@ -47,6 +50,7 @@
 
 Initial release.
 
+[0.1.7]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.7
 [0.1.6]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.6
 [0.1.5]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.5
 [0.1.4]: https://github.com/oxidecomputer/oxnet/releases/oxnet-0.1.4
