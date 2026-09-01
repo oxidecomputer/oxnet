@@ -2,6 +2,8 @@
 
 ## Next
 
+* Adds a validated MD5 authentication string type that zeroizes its key on drop
+
 ## [0.1.7] - 2026-08-13
 
 * Adds validated unicast link-local IPv4, IPv6, and dual-stack address types

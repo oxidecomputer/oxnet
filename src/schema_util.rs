@@ -80,6 +80,7 @@ mod tests {
         let _ = gen.subschema_for::<UnicastLinkLocalIpAddr>();
         let _ = gen.subschema_for::<UnicastLinkLocalIpv4Addr>();
         let _ = gen.subschema_for::<UnicastLinkLocalIpv6Addr>();
+        let _ = gen.subschema_for::<Md5AuthString>();
 
         /// Object to validate types with inlined schemas.
         #[derive(schemars::JsonSchema)]
