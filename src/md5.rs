@@ -13,7 +13,7 @@ use zeroize::{ZeroizeOnDrop, Zeroizing};
 /// allocation is zeroized when the value is dropped. Converting it into a
 /// [`String`] transfers responsibility for zeroizing that allocation to the
 /// caller. Its serialized representation contains the key as a plain string.
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, ZeroizeOnDrop)]
 pub struct Md5AuthString(Zeroizing<String>);
 
 impl Md5AuthString {
@@ -61,8 +61,6 @@ impl Hash for Md5AuthString {
         self.as_str().hash(state);
     }
 }
-
-impl ZeroizeOnDrop for Md5AuthString {}
 
 impl TryFrom<String> for Md5AuthString {
     type Error = Md5AuthStringError;
