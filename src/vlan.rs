@@ -56,13 +56,9 @@ impl VlanId {
     pub const RESERVED: u16 = 4095;
     /// Maximum valid VLAN ID value (0xFFE / 4094)
     pub const MAX: Self = Self(4094);
-    /// IEEE 802.1Q Null VID. This VID represents untagged traffic, but the
-    /// presence of a VLAN tag allows the frames to have 802.1p QoS bits.
+    /// IEEE 802.1Q Null VLAN ID. This VLAN ID represents untagged traffic, but
+    /// the presence of a VLAN tag allows the frames to have 802.1p QoS bits.
     pub const NULL: Self = Self(0);
-    /// IEEE 802.1Q Default PVID value
-    pub const DEFAULT_PVID: Self = Self(1);
-    /// IEEE 802.1Q Default SR PVID value
-    pub const DEFAULT_SR_PVID: Self = Self(2);
 
     /// Create a new [VlanId] after validating that `value` is within the
     /// permitted range (`0..=4094`).
@@ -126,7 +122,7 @@ impl schemars::JsonSchema for VlanId {
             instance_type: Some(schemars::schema::InstanceType::Integer.into()),
             number: Some(Box::new(schemars::schema::NumberValidation {
                 minimum: Some(0.0),
-                maximum: Some(f64::from(VlanId::RESERVED - 1)),
+                maximum: Some(f64::from(VlanId::MAX.0)),
                 ..Default::default()
             })),
             extensions: crate::schema_util::extension("VlanId", "0.1.7"),
