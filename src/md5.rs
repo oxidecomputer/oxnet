@@ -1,7 +1,6 @@
 // Copyright 2026 Oxide Computer Company
 
 use std::hash::{Hash, Hasher};
-use zeroize::{ZeroizeOnDrop, Zeroizing};
 
 /// An MD5 authentication key represented as a printable ASCII string.
 ///
@@ -9,12 +8,10 @@ use zeroize::{ZeroizeOnDrop, Zeroizing};
 /// the printable ASCII range (`0x20..=0x7e`). This follows the recommendation
 /// for TCP MD5 keys in RFC 2385 section 4.5.
 ///
-/// The [`Debug`](std::fmt::Debug) implementation redacts the key, and its
-/// allocation is zeroized when the value is dropped. Converting it into a
-/// [`String`] transfers responsibility for zeroizing that allocation to the
-/// caller. Its serialized representation contains the key as a plain string.
-#[derive(Clone, Eq, PartialEq, ZeroizeOnDrop)]
-pub struct Md5AuthString(Zeroizing<String>);
+/// The [`Debug`](std::fmt::Debug) implementation redacts the key, however its
+/// serialized representation contains the key as a plain string.
+#[derive(Clone, Eq, PartialEq)]
+pub struct Md5AuthString(String);
 
 impl Md5AuthString {
     /// Maximum key length in bytes.
@@ -22,8 +19,6 @@ impl Md5AuthString {
 
     /// Creates an MD5 authentication string after validating its contents.
     pub fn new(source: String) -> Result<Self, Md5AuthStringError> {
-        let source = Zeroizing::new(source);
-
         if source.is_empty() {
             return Err(Md5AuthStringError::Empty);
         }
@@ -49,10 +44,9 @@ impl Md5AuthString {
         &self.0
     }
 
-    /// Returns the underlying string, transferring responsibility for
-    /// zeroizing it to the caller.
-    pub fn into_inner(mut self) -> String {
-        std::mem::take(&mut *self.0)
+    /// Returns the underlying string.
+    pub fn into_inner(self) -> String {
+        self.0
     }
 }
 
@@ -133,8 +127,8 @@ impl schemars::JsonSchema for Md5AuthString {
 
 impl std::error::Error for Md5AuthStringError {}
 
-/// An error returned when an MD5 authentication string violates its required
-/// invariants.
+/// An error returned when a String fails to meet the required invariants during
+/// construction of an Md5AuthSTring.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Md5AuthStringError {
     /// The string is empty.
