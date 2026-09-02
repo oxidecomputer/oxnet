@@ -649,7 +649,7 @@ impl Ipv4Net {
 
 impl std::fmt::Display for Ipv4Net {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}/{}", &self.addr, self.width)
+        write!(f, "{}/{}", self.addr, self.width)
     }
 }
 
@@ -1053,7 +1053,7 @@ impl Ipv6Net {
 
 impl std::fmt::Display for Ipv6Net {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}/{}", &self.addr, self.width)
+        write!(f, "{}/{}", self.addr, self.width)
     }
 }
 
