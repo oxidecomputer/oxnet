@@ -88,6 +88,19 @@
         "version": "0.1.0"
       }
     },
+    "Md5AuthString": {
+      "title": "An MD5 authentication string",
+      "description": "A nonempty printable ASCII string of at most 80 bytes",
+      "type": "string",
+      "maxLength": 80,
+      "minLength": 1,
+      "pattern": "^[ -~]+$",
+      "x-rust-type": {
+        "crate": "oxnet",
+        "path": "oxnet::Md5AuthString",
+        "version": "0.1.8"
+      }
+    },
     "UnicastLinkLocalIpAddr": {
       "oneOf": [
         {
