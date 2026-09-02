@@ -1,0 +1,3 @@
+# NOTE: The required version should be in sync with the version pinned in
+# .github/buildomat/jobs/build-and-test.sh.
+nextest-version = { required = "0.9.143", recommended = "0.9.143" }

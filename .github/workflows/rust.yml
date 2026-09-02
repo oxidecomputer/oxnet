@@ -6,42 +6,116 @@ name: Rust
 on:
   push:
     branches: [main]
+  # No base-branch filter: a pull request may target another pull request's
+  # branch, and those need checks too.
   pull_request:
-    branches: [main]
+
+env:
+  RUSTFLAGS: -D warnings
 
 jobs:
-  check-style:
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -D warnings
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
-      - name: Report cargo version
-        run: cargo --version
-      - name: Report rustfmt version
-        run: cargo fmt -- --version
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-hack
+      - name: Report versions
+        run: |
+          cargo --version
+          cargo fmt -- --version
+          cargo clippy --version
       - name: Check style
         run: cargo fmt -- --check
+      # The powerset covers combinations the all-features and default builds
+      # miss, such as a type whose schema only compiles when serde happens to
+      # be on as well.
+      - name: Lint (clippy)
+        run: cargo hack --feature-powerset clippy --all-targets --locked
+      - name: Build documentation
+        run: cargo doc --all-features --no-deps --locked
 
+  # One runner suffices: a feature combination that breaks does so
+  # identically on every platform.
   build-and-test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        # 1.88 is the MSRV
-        rust-version: [stable, "1.88"]
-        features: [all, default]
-        include:
-          - features: all
-            feature_flags: --all-features
+    name: Build and test (feature powerset)
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
-      - uses: dtolnay/rust-toolchain@v1
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+      - uses: taiki-e/install-action@v2
         with:
-          toolchain: ${{ matrix.rust-version }}
-      - name: Report cargo version
-        run: cargo --version
-      - name: Report rustc version
-        run: rustc --version
+          tool: cargo-hack,nextest
+      - name: Report versions
+        run: |
+          cargo --version
+          rustc --version
       - name: Build
-        run: cargo build ${{ matrix.feature_flags }} --locked --all-targets --verbose
+        run: cargo hack --feature-powerset build --all-targets --locked --verbose
       - name: Run tests
-        run: cargo test ${{ matrix.feature_flags }} --locked --all-targets --verbose
+        run: cargo hack --feature-powerset nextest run --locked
+      # nextest does not run doctests, so they need a pass of their own.
+      - name: Run doctests
+        run: cargo hack --feature-powerset test --doc --locked --verbose
+
+  # illumos, where oxnet's in-kernel and switch consumers run, is covered by
+  # buildomat (.github/buildomat/jobs), not by a GitHub runner.
+  build-and-test-macos:
+    name: Build and test (macOS)
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features: ["--all-features", ""]
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+      - name: Report versions
+        run: |
+          cargo --version
+          rustc --version
+      - name: Build
+        run: cargo build ${{ matrix.features }} --all-targets --locked --verbose
+      - name: Run tests
+        run: cargo nextest run ${{ matrix.features }} --locked
+      - name: Run doctests
+        run: cargo test ${{ matrix.features }} --doc --locked --verbose
+
+  build-and-test-msrv:
+    name: Build and test (MSRV)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          # Keep in step with rust-version in Cargo.toml.
+          toolchain: "1.88"
+      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+        with:
+          key: msrv
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-hack,nextest
+      - name: Report versions
+        run: |
+          cargo --version
+          rustc --version
+      - name: Build
+        run: cargo hack --feature-powerset build --all-targets --locked --verbose
+      - name: Run tests
+        run: cargo hack --feature-powerset nextest run --locked
+      - name: Run doctests
+        run: cargo hack --feature-powerset test --doc --locked --verbose
