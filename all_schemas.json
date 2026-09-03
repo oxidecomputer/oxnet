@@ -101,6 +101,18 @@
         "version": "0.1.8"
       }
     },
+    "NonZeroVlanId": {
+      "title": "A non-zero VLAN ID",
+      "description": "An IEEE 802.1Q VLAN ID, in the range 1-4094 (0 is the null VLAN ID and 4095 is reserved)",
+      "type": "integer",
+      "maximum": 4094.0,
+      "minimum": 1.0,
+      "x-rust-type": {
+        "crate": "oxnet",
+        "path": "oxnet::NonZeroVlanId",
+        "version": "0.1.8"
+      }
+    },
     "UnicastLinkLocalIpAddr": {
       "oneOf": [
         {
@@ -165,7 +177,7 @@
       "x-rust-type": {
         "crate": "oxnet",
         "path": "oxnet::VlanId",
-        "version": "0.1.7"
+        "version": "0.1.8"
       }
     }
   }

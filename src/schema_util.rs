@@ -79,6 +79,7 @@ mod tests {
         let _ = gen.subschema_for::<Ipv6Net>();
         let _ = gen.subschema_for::<Md5AuthString>();
         let _ = gen.subschema_for::<VlanId>();
+        let _ = gen.subschema_for::<NonZeroVlanId>();
         let _ = gen.subschema_for::<UnicastLinkLocalIpAddr>();
         let _ = gen.subschema_for::<UnicastLinkLocalIpv4Addr>();
         let _ = gen.subschema_for::<UnicastLinkLocalIpv6Addr>();
