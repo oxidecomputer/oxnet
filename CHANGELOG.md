@@ -3,6 +3,10 @@
 ## Next
 
 * Adds a validated MD5 authentication string type that zeroizes its key on drop
+* Adds a validated `VlanId` type (`0..=4094`) and a `NonZeroVlanId` wrapper
+  (`1..=4094`) that excludes the null VLAN ID by construction, with
+  `new_assert` constructors that reject invalid constants at compile time
+  and an optional `slog` feature
 
 ## [0.1.7] - 2026-08-13
 
