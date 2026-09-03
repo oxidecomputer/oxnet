@@ -20,12 +20,12 @@ jobs:
     env:
       RUSTDOCFLAGS: -D warnings
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
-      - uses: taiki-e/install-action@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: taiki-e/install-action@e67fa11c4b9316fa714ddf0abed07a0c3143b95b # v2.87.4
         with:
           tool: cargo-hack
       - name: Report versions
@@ -43,29 +43,35 @@ jobs:
       - name: Build documentation
         run: cargo doc --all-features --no-deps --locked
 
-  # One runner suffices: a feature combination that breaks does so
-  # identically on every platform.
+  # Feature-combo compile coverage lives in the lint job, where clippy
+  # runs over the powerset.
   build-and-test:
-    name: Build and test (feature powerset)
+    name: Build and test
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features: ["", "--all-features", "--no-default-features"]
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
-      - uses: taiki-e/install-action@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
-          tool: cargo-hack,nextest
+          key: ${{ matrix.features }}
+      - uses: taiki-e/install-action@e67fa11c4b9316fa714ddf0abed07a0c3143b95b # v2.87.4
+        with:
+          tool: nextest
       - name: Report versions
         run: |
           cargo --version
           rustc --version
       - name: Build
-        run: cargo hack --feature-powerset build --all-targets --locked --verbose
+        run: cargo build ${{ matrix.features }} --all-targets --locked --verbose
       - name: Run tests
-        run: cargo hack --feature-powerset nextest run --locked
+        run: cargo nextest run ${{ matrix.features }} --locked
       # nextest does not run doctests, so they need a pass of their own.
       - name: Run doctests
-        run: cargo hack --feature-powerset test --doc --locked --verbose
+        run: cargo test ${{ matrix.features }} --doc --locked --verbose
 
   # illumos, where oxnet's in-kernel and switch consumers run, is covered by
   # buildomat (.github/buildomat/jobs), not by a GitHub runner.
@@ -77,10 +83,12 @@ jobs:
       matrix:
         features: ["--all-features", ""]
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
-      - uses: taiki-e/install-action@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: ${{ matrix.features }}
+      - uses: taiki-e/install-action@e67fa11c4b9316fa714ddf0abed07a0c3143b95b # v2.87.4
         with:
           tool: nextest
       - name: Report versions
@@ -97,25 +105,29 @@ jobs:
   build-and-test-msrv:
     name: Build and test (MSRV)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features: ["", "--all-features", "--no-default-features"]
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@master
         with:
           # Keep in step with rust-version in Cargo.toml.
           toolchain: "1.88"
-      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
-          key: msrv
-      - uses: taiki-e/install-action@v2
+          key: msrv-${{ matrix.features }}
+      - uses: taiki-e/install-action@e67fa11c4b9316fa714ddf0abed07a0c3143b95b # v2.87.4
         with:
-          tool: cargo-hack,nextest
+          tool: nextest
       - name: Report versions
         run: |
           cargo --version
           rustc --version
       - name: Build
-        run: cargo hack --feature-powerset build --all-targets --locked --verbose
+        run: cargo build ${{ matrix.features }} --all-targets --locked --verbose
       - name: Run tests
-        run: cargo hack --feature-powerset nextest run --locked
+        run: cargo nextest run ${{ matrix.features }} --locked
       - name: Run doctests
-        run: cargo hack --feature-powerset test --doc --locked --verbose
+        run: cargo test ${{ matrix.features }} --doc --locked --verbose
