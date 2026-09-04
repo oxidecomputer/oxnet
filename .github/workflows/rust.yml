@@ -44,13 +44,18 @@ jobs:
         run: cargo doc --all-features --no-deps --locked
 
   # Feature-combo compile coverage lives in the lint job, where clippy
-  # runs over the powerset.
+  # runs over the powerset. This job just runs tests across all/default/none
+  # feature selections.
+  #
+  # Note: illumos, where oxnet's in-kernel and switch consumers run, is covered
+  #       by buildomat (.github/buildomat/jobs), not by a GitHub runner.
   build-and-test:
-    name: Build and test
-    runs-on: ubuntu-latest
+    name: Build and test (${{ matrix.os }}, ${{ matrix.features || 'default' }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
         features: ["", "--all-features", "--no-default-features"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -70,35 +75,6 @@ jobs:
       - name: Run tests
         run: cargo nextest run ${{ matrix.features }} --locked
       # nextest does not run doctests, so they need a pass of their own.
-      - name: Run doctests
-        run: cargo test ${{ matrix.features }} --doc --locked --verbose
-
-  # illumos, where oxnet's in-kernel and switch consumers run, is covered by
-  # buildomat (.github/buildomat/jobs), not by a GitHub runner.
-  build-and-test-macos:
-    name: Build and test (macOS)
-    runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        features: ["--all-features", ""]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          key: ${{ matrix.features }}
-      - uses: taiki-e/install-action@e67fa11c4b9316fa714ddf0abed07a0c3143b95b # v2.87.4
-        with:
-          tool: nextest
-      - name: Report versions
-        run: |
-          cargo --version
-          rustc --version
-      - name: Build
-        run: cargo build ${{ matrix.features }} --all-targets --locked --verbose
-      - name: Run tests
-        run: cargo nextest run ${{ matrix.features }} --locked
       - name: Run doctests
         run: cargo test ${{ matrix.features }} --doc --locked --verbose
 
