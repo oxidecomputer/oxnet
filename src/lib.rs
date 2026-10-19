@@ -11,6 +11,7 @@ mod multicast;
 #[cfg(feature = "schemars")]
 mod schema_util;
 mod sockaddr;
+mod vlan;
 
 pub use ipnet::{
     IpNet, IpNetParseError, IpNetPrefixError, Ipv4Net, Ipv6Net, IPV4_NET_WIDTH_MAX,
@@ -24,9 +25,7 @@ pub use ipaddr::{
 
 #[cfg(feature = "ula")]
 pub use ipnet::{UlaBuildError, UlaBuilder};
-
 pub use md5::{Md5AuthString, Md5AuthStringError};
-
 pub use multicast::MulticastMac;
-
 pub use sockaddr::{SocketAddrJson, SocketAddrV4Json, SocketAddrV6Json};
+pub use vlan::{NonZeroVlanId, VlanId, VlanIdError, VlanIdParseError};
