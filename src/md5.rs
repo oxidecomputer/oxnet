@@ -48,6 +48,24 @@ impl Md5AuthString {
     pub fn into_inner(self) -> String {
         self.0
     }
+
+    /// Returns the key zero-padded to [`Self::MAX_LEN`] bytes.
+    ///
+    /// This is for interfaces such as Linux's `struct tcp_md5sig`, which carry
+    /// the key in a fixed-size buffer next to a separate length field. Only the
+    /// first [`Self::byte_len`] bytes are the key. Passing [`Self::byte_len`]
+    /// alongside the buffer gives a two-part buffer/len representation.
+    pub fn to_padded_bytes(&self) -> [u8; Self::MAX_LEN] {
+        let mut keyval = [0u8; Self::MAX_LEN];
+        // Cannot panic: `new` guarantees `key.len() <= Self::MAX_LEN`.
+        keyval[..self.byte_len()].copy_from_slice(self.as_bytes());
+        keyval
+    }
+
+    /// Returns the length of the key in bytes, from 1 to [`Self::MAX_LEN`].
+    pub fn byte_len(&self) -> usize {
+        self.as_bytes().len()
+    }
 }
 
 impl Hash for Md5AuthString {
